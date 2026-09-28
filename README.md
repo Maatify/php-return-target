@@ -25,24 +25,37 @@ A development-stage Composer package for return-target handling. No Runtime API 
 
 The package identity and initial Composer metadata are established. The Public Runtime API has not been implemented yet.
 
-## Public Runtime API
+## Requirements
 
-No Public Runtime API is implemented currently. Runtime implementation has not started. The current contract boundary is documented in [RETURN_TARGET_PACKAGE_REFERENCE.md](RETURN_TARGET_PACKAGE_REFERENCE.md).
+- PHP `^8.4`
+- No runtime package dependencies beyond PHP.
 
 ## Installation
 
-No installation command is provided yet because no published/resolvable package version or Runtime API exists for consumption.
+No installation command is available because there is no externally published/resolvable package version.
+
+## Public Runtime API
+
+No Public Runtime API is implemented currently. Runtime implementation has not started. The current contract boundary is documented in [RETURN_TARGET_PACKAGE_REFERENCE.md](RETURN_TARGET_PACKAGE_REFERENCE.md).
 
 ## Boundary
 
 This is a standalone, framework-agnostic Composer package. It does not own a Host application's HTTP, router, session, controller, or authentication flow, and it has no persistence or database behavior currently.
 
-## Requirements
+## Documentation
 
-- PHP `^8.4`
-- Proprietary Maatify license
+- [RETURN_TARGET_PACKAGE_REFERENCE.md](RETURN_TARGET_PACKAGE_REFERENCE.md) — current canonical public/runtime/behavioral package contract.
+- [CHANGELOG.md](CHANGELOG.md) — change history.
 
-The detailed current boundary is maintained in [RETURN_TARGET_PACKAGE_REFERENCE.md](RETURN_TARGET_PACKAGE_REFERENCE.md).
+## License
+
+This package is proprietary software owned by Maatify. See [LICENSE](LICENSE) for the applicable terms.
+
+## Author
+
+Engineered by **Mohamed Abdulalim** ([@megyptm](https://github.com/megyptm))<br>
+Backend Lead & Technical Architect<br>
+[https://www.maatify.dev](https://www.maatify.dev)
 
 ---
 
