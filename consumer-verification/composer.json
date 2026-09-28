@@ -1,0 +1,22 @@
+{
+    "name": "maatify/php-return-target-consumer-verification",
+    "description": "Development-only external consumer verification for php-return-target.",
+    "type": "project",
+    "require": {
+        "maatify/php-return-target": "*"
+    },
+    "repositories": [
+        {
+            "type": "path",
+            "url": "..",
+            "options": {
+                "symlink": false
+            }
+        }
+    ],
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "config": {
+        "sort-packages": true
+    }
+}

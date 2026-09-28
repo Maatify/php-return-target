@@ -44,7 +44,7 @@
         "phpunit/phpunit": "^12.5"
     },
     "scripts": {
-        "analyse": "phpstan analyse --configuration=phpstan.neon",
+        "analyse": "phpstan analyse --configuration=phpstan.neon --memory-limit=512M",
         "format": [
             "php-cs-fixer fix --config=.php-cs-fixer.dist.php",
             "@php scripts/ci/check-per-cs-31-delta.php .php-cs-fixer.dist.php src tests scripts/ci"
@@ -55,7 +55,12 @@
         ],
         "test": "phpunit --configuration=phpunit.xml",
         "test:unit": "phpunit --configuration=phpunit.xml --testsuite=unit",
-        "test:system": "phpunit --configuration=phpunit.xml --testsuite=system"
+        "test:system": "phpunit --configuration=phpunit.xml --testsuite=system",
+        "check:examples": "php examples/basic_usage.php",
+        "check:syntax": "scripts/ci/check-php-syntax.sh",
+        "check:whitespace": "scripts/ci/check-whitespace.sh",
+        "check:workflows": "scripts/ci/run-actionlint.sh",
+        "verify:consumer": "scripts/ci/run-consumer-verification.sh"
     },
     "config": {
         "allow-plugins": false,
