@@ -62,9 +62,21 @@ final class CustomReturnTargetService implements ReturnTargetServiceInterface
 
 When a Host selects this path, the package does not require the Host implementation to use the canonical crypto or token protocol. The custom implementation must nevertheless honor the interface's behavioral Public Contract when it presents itself as a drop-in implementation.
 
+#### Common Public Behavioral Floor
+
+Every implementation claiming conformity with `ReturnTargetServiceInterface`, whether canonical or Host-supplied, shares the following behavioral floor:
+
+- `isSafe(string $target): bool` returns `true` only when the target is an internal return target currently accepted by that implementation, is not an external-authority redirect target, and any implementation-specific policy currently applied by that implementation passes. It returns `false` for normal target rejection.
+- `issue(string $target): ?string` returns an opaque transport token string for an accepted internal target, and `null` for normal target rejection. An implementation must not issue a token for a target it currently considers unacceptable, and the service must not substitute an internal fallback.
+- `verify(string $token): ?VerifiedReturnTargetDTO` succeeds only when the token is currently acceptable, its returned target is currently an accepted internal return target, the result is not expired at verification time, and `expiresAt` is the result's Unix expiration instant in seconds. When `current time >= expiresAt`, verification must not succeed. Normal malformed, untrusted, or rejected tokens return `null`.
+
+Every conforming implementation therefore has bounded-lifetime semantics. The exact `1..3600` TTL range remains a policy of `SecureReturnTargetService` only; a custom implementation may choose a different TTL duration while preserving the shared expiry meaning and non-expired verification floor.
+
 ### 3. Security Guarantee Boundary
 
-Package guarantees for token format, HMAC, HKDF, key rotation, expiry enforcement, audience binding, Base64URL canonicalization, and generic target-safety validation apply to `SecureReturnTargetService` only.
+The shared interface guarantees apply to every conforming implementation: successful results remain internal-target-only, normal rejection uses `false` or `null`, successful verification means a currently accepted and non-expired result, `expiresAt` has the shared Unix-expiry meaning, and the service performs no internal fallback substitution.
+
+The following implementation-specific guarantees apply to `SecureReturnTargetService` only: its exact RFC-oriented validator rules, 2048-byte target limit, 4096-byte token limit, `rt1` framing, Base64URL canonicalization, HMAC-SHA256, `maatify/crypto` KeyRotation integration, HKDF, the `return-target:token:v1` context, `kid` semantics, audience format and binding, canonical TTL range `1..3600`, canonical crypto/configuration exception mapping, and restrict-only `ReturnTargetPolicyInterface` behavior.
 
 Host-supplied implementations are Host-owned and do not automatically inherit implementation-specific security guarantees of `SecureReturnTargetService`. This boundary must not be described as a security rating of custom implementations; it defines only which implementation owns the stated guarantees.
 
@@ -117,7 +129,7 @@ An unsafe target such as `//evil.example` remains rejected even if the Host poli
 
 For the canonical implementation, `isSafe()` represents effective service acceptance: generic safety and the optional Host policy must both pass.
 
-`issue()` applies the same effective policy before issuing a token. After cryptographic verification, `verify()` re-applies generic safety to the recovered target and then applies the current Host policy. It returns a DTO only when both checks pass. Consequently, changing the Host policy may make an old token cryptographically valid but currently unacceptable; this is intentional.
+`issue()` applies the same effective policy before issuing a token. After cryptographic verification, `verify()` re-applies generic safety to the recovered target and then applies the current Host policy to the original target and, when different, its single-decoded inspection view. Every evaluation must allow the target. It returns a DTO only when all checks pass. Consequently, changing the Host policy may make an old token cryptographically valid but currently unacceptable; this is intentional.
 
 ### 8. Stateless and Persistence Boundary
 
@@ -260,7 +272,7 @@ There is no internal fallback behavior.
 
 ### 21. Behavioral Requirements for Host-Supplied Implementations
 
-A custom `ReturnTargetServiceInterface` implementation that claims drop-in compatibility must preserve these semantics:
+A custom `ReturnTargetServiceInterface` implementation may change its token format, cryptographic mechanism, key-management mechanism, storage model, internal architecture, stricter validation policy, and TTL duration policy. A custom implementation that claims drop-in compatibility must nevertheless preserve the common behavioral floor:
 
 ```text
 isSafe()
@@ -275,15 +287,25 @@ verify()
 → null on normal untrusted-token rejection
 ```
 
-Its protocol, crypto, and storage internals remain Host-owned. Expected malformed or untrusted input must not be used as exception-driven control flow when the implementation claims full interface behavioral compatibility.
+In particular, a successful target remains internal, normal target rejection is `false` or `null`, normal token rejection is `null`, successful verification returns a currently accepted non-expired result, and `expiresAt` is the actual Unix expiration instant in seconds. A Host implementation that changes these meanings is not a drop-in implementation of the same Public Contract. Its protocol, crypto, and storage internals remain Host-owned. Expected malformed or untrusted input must not be used as exception-driven control flow when the implementation claims full interface behavioral compatibility.
 
 ### 22. Canonical Generic Target Safety Contract
 
 The canonical implementation accepts only an absolute-path reference with an optional query. Examples include `/`, `/orders`, `/orders/15`, and `/orders/15?tab=payment`.
 
-The target must be non-empty, no more than 2048 bytes, begin with exactly one `/`, not begin with `//`, contain no raw backslash, fragment (`#`), ASCII control character, DEL, or raw whitespace, and contain only percent escapes where `%` is followed by exactly two hexadecimal digits. It must satisfy valid RFC 3986 path/query syntax.
+The original target must first pass raw validation. It must be non-empty, no more than 2048 bytes, begin with exactly one `/`, not begin with `//`, contain no raw backslash, raw fragment marker (`#`), ASCII control character, NUL, DEL, or raw whitespace, and contain only percent escapes where `%` is followed by exactly two hexadecimal digits. It must satisfy valid RFC 3986 absolute-path plus optional-query syntax.
 
-Validation performs no trimming, normalization, or percent-decoding. Successful verification returns the exact target representation originally issued. The canonical service contains no Host-route denylist.
+After raw syntax and percent validation succeeds, the canonical implementation creates one security-inspection view by percent-decoding the original representation exactly once. This view exists only for security inspection; it is not a replacement representation and is never recursively decoded. If the single-decoded view contains a newly formed valid percent escape that could require a second decoding pass to reveal URI structure, the target is rejected. For example, a class of inputs such as `%25xx` is rejected when the first decoding produces a second-stage escape ambiguity.
+
+The single-decoded inspection view must be rejected if it contains NUL, an ASCII control character, DEL, raw backslash, raw whitespace, or a fragment marker; no longer represents an internal absolute-path plus optional-query structure; begins with `//`; becomes an external authority or scheme form; or otherwise violates the generic internal-target safety floor. The package rejects these cases rather than normalizing them.
+
+The path is also rejected when either the raw path or the single-decoded inspection path contains a complete segment exactly equal to `.` or `..` after splitting on `/`. This includes encoded forms that become `.` or `..` after the single decoding. The package does not perform dot-segment normalization.
+
+Validation performs no trimming, mutation, normalization, or recursive decoding. The optional Host policy is applied to the original target and, when the single-decoded inspection view differs, to that decoded view as well; every evaluation must allow the target. This prevents a Host route restriction from being bypassed by percent encoding while preserving the restrict-only rule. The canonical service contains no Host-route denylist.
+
+Successful issuance and verification preserve the original representation exactly: the exact original target is issued, stored in the token payload, recovered, and returned. The decoded inspection view is never stored instead of the original and is never returned to the consumer.
+
+After successful `verify()`, the Host must treat the returned target as the validated representation. If the Host percent-decodes, normalizes, resolves, rewrites, or otherwise transforms it before redirect execution, the Host owns re-validation of the transformed value before using it as a redirect target.
 
 ### 23. Token Confidentiality Boundary
 
@@ -392,6 +414,14 @@ Rejected because it couples the generic package to Host-specific routes.
 #### H. Fully closed library with no custom implementation path
 
 Not selected because interface-level replacement supports Hosts with materially different requirements without weakening the canonical secure implementation.
+
+## Rationale
+
+The package remains standalone and framework-agnostic so its return-target capability can be reused without coupling it to a Host application's HTTP, routing, authentication, or session model. A canonical implementation is necessary to prevent each Host from duplicating security-sensitive return-target logic. Stable Maatify capabilities—`maatify/crypto`, `maatify/shared-common`, and `maatify/exceptions`—are reused rather than duplicated.
+
+The canonical security protocol remains locked so its guarantees stay understandable and testable. Extensibility is placed at the service boundary instead of turning the canonical implementation into a strategy or plugin framework. A restrict-only Host policy provides Host-specific routing restrictions without weakening generic package safety.
+
+The stateless design is appropriate because a return-target token is not an authentication or authorization credential and there is no established domain need for one-time persistence. The signed, non-encrypted design is intentional because the requirement is integrity, authenticity, and bounded lifetime, not confidentiality. Host ownership of HTTP, authentication, sessions, redirects, and secrets prevents framework and application coupling. Finally, a shared behavioral floor gives `ReturnTargetServiceInterface` one consistent meaning when a Host replaces the implementation.
 
 ### 35. Consequences
 
