@@ -1,9 +1,8 @@
 {
     "name": "maatify/php-return-target",
-    "description": "Framework-agnostic PHP library for safe internal return-target handling.",
+    "description": "PHP library package foundation for return-target handling.",
     "keywords": [
         "return-target",
-        "redirect",
         "php",
         "maatify"
     ],
