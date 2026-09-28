@@ -41,6 +41,12 @@ final class HmacReturnTargetTokenCodec
 
     private readonly HKDFService $hkdfService;
 
+    /**
+     * Creates the codec with package-owned strict key-rotation and HKDF composition.
+     *
+     * The configuration supplies the canonical audience, while the provider supplies
+     * Host-owned key material without allowing replacement of the crypto composition.
+     */
     public function __construct(
         private readonly ReturnTargetConfig $config,
         private readonly KeyProviderInterface $keyProvider,
@@ -55,6 +61,8 @@ final class HmacReturnTargetTokenCodec
      *
      * @throws ReturnTargetCryptoConfigurationException when key state, key material,
      *     the active key ID, or the generated token violates the canonical contract.
+     * @throws JsonException when canonical payload encoding fails.
+     * Unclassified external or provider failures propagate unchanged.
      */
     public function issue(string $target, int $expiresAt): string
     {
@@ -89,6 +97,8 @@ final class HmacReturnTargetTokenCodec
      * Verifies a canonical token and returns its authenticated payload when valid.
      *
      * Normal malformed, untrusted, expired, or policy-rejected tokens return null.
+     * Key-state, HKDF, and inconsistent decryption-key failures throw
+     * ReturnTargetCryptoConfigurationException with the original failure preserved.
      * Infrastructure and unclassified provider failures propagate unchanged.
      */
     public function verify(string $token, int $nowTimestamp): ?VerifiedTokenPayloadDTO
@@ -179,6 +189,11 @@ final class HmacReturnTargetTokenCodec
         );
     }
 
+    /**
+     * Derives the fixed 32-byte signing key and classifies HKDF failures.
+     *
+     * @throws ReturnTargetCryptoConfigurationException with the HKDF failure as previous.
+     */
     private function deriveSigningKey(string $rootKey): string
     {
         try {
@@ -195,6 +210,11 @@ final class HmacReturnTargetTokenCodec
         }
     }
 
+    /**
+     * Enforces exactly one active key and maps invariant failures to configuration errors.
+     *
+     * @throws ReturnTargetCryptoConfigurationException when the active-key invariant fails.
+     */
     private function validateKeyStateForConfiguration(): void
     {
         try {
@@ -207,6 +227,11 @@ final class HmacReturnTargetTokenCodec
         }
     }
 
+    /**
+     * Resolves the active encryption key after strict state validation.
+     *
+     * @throws ReturnTargetCryptoConfigurationException for classified active-key failures.
+     */
     private function resolveActiveKey(): \Maatify\Crypto\KeyRotation\CryptoKeyInterface
     {
         try {
@@ -219,6 +244,15 @@ final class HmacReturnTargetTokenCodec
         }
     }
 
+    /**
+     * Resolves a key after the direct existence probe and classifies policy outcomes.
+     *
+     * Decryption disallowance returns null; a post-probe missing key becomes a
+     * configuration exception preserving the crypto failure as previous.
+     *
+     * @return \Maatify\Crypto\KeyRotation\CryptoKeyInterface|null
+     * @throws ReturnTargetCryptoConfigurationException for inconsistent key state.
+     */
     private function resolveDecryptionKey(string $keyId): ?\Maatify\Crypto\KeyRotation\CryptoKeyInterface
     {
         try {
@@ -238,6 +272,11 @@ final class HmacReturnTargetTokenCodec
         return rtrim(strtr(base64_encode($bytes), '+/', '-_'), '=');
     }
 
+    /**
+     * Strictly decodes one required canonical unpadded Base64URL segment.
+     *
+     * Invalid alphabet, padding, decoding, length, or re-encoding returns null.
+     */
     private function decodeBase64Url(string $segment): ?string
     {
         if ($segment === '' || str_contains($segment, '=') || strlen($segment) % 4 === 1) {

@@ -6,6 +6,9 @@ namespace Maatify\ReturnTarget\DTO;
 
 /**
  * @internal
+ *
+ * Represents successful canonical token, signature, audience, and expiry
+ * verification before final target validation or Host policy acceptance.
  */
 final readonly class VerifiedTokenPayloadDTO implements \JsonSerializable
 {

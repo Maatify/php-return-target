@@ -9,7 +9,7 @@ use PHPUnit\Framework\TestCase;
 
 final class VerifiedTokenPayloadDTOTest extends TestCase
 {
-    public function testJsonSerializationPreservesTheExactPublicShape(): void
+    public function testJsonSerializationPreservesTheExactInternalShape(): void
     {
         $dto = new VerifiedTokenPayloadDTO('/orders/15', 1790000000);
 
