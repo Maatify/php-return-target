@@ -1,0 +1,42 @@
+{
+    "name": "maatify/php-return-target",
+    "description": "Framework-agnostic PHP library for safe internal return-target handling.",
+    "keywords": [
+        "return-target",
+        "redirect",
+        "php",
+        "maatify"
+    ],
+    "homepage": "https://github.com/Maatify/php-return-target",
+    "type": "library",
+    "license": "proprietary",
+    "authors": [
+        {
+            "name": "Maatify",
+            "email": "support@maatify.dev",
+            "homepage": "https://maatify.dev"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/Maatify/php-return-target/issues",
+        "source": "https://github.com/Maatify/php-return-target"
+    },
+    "autoload": {
+        "psr-4": {
+            "Maatify\\ReturnTarget\\": "src/"
+        }
+    },
+    "require": {
+        "php": "^8.4"
+    },
+    "config": {
+        "allow-plugins": false,
+        "optimize-autoloader": true,
+        "sort-packages": true,
+        "platform": {
+            "php": "8.4.0"
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}
