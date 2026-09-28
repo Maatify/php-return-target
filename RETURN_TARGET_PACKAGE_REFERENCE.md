@@ -1,36 +1,27 @@
 # Return Target Package Reference
 
-## Package Identity
-
-- **Composer:** `maatify/php-return-target`
-- **Namespace:** `Maatify\ReturnTarget`
-- **PHP:** `^8.4`
-- **License:** `proprietary`
-- **Status:** Development / Unpublished
-
 ## Package Purpose
 
-This package is intended to provide framework-agnostic safe internal return-target handling.
+The current package concern is return-target handling. No package runtime behavior is implemented yet.
+
+## Current Runtime Contract
+
+- Public Runtime API inventory: **None implemented**.
+- No package runtime behavior is implemented yet.
 
 ## Current Boundary
 
-- Runtime implementation has not started.
-- Public Runtime API inventory: **None implemented yet**.
 - The package currently has no persistence, database, SQL, or PDO behavior.
 - The package does not own framework, HTTP, router, session, or controller behavior.
 - The package does not contain Host-specific authentication flows.
-- Return-target interfaces, validators, token handling, crypto, expiry, middleware, and redirect resolution are not implemented in this boundary.
+- No Public Runtime API is implemented currently.
 
 ## Source Topology
 
 **Source Topology: Single Capability**, as recorded in the Owner-approved [DEC-002 — Single Capability Source Topology](docs/decisions/DEC-002-SINGLE-CAPABILITY-SOURCE-TOPOLOGY.md).
 
-The `src/` tree will be materialized when the first Runtime Work Unit establishes the approved source implementation. No placeholder source directory or class is part of this bootstrap.
+No source responsibilities are currently materialized.
 
 ## Composer Ownership
 
-`composer.json` is the canonical source for Composer identity, dependencies, production autoloading, configuration, stability policy, and distribution metadata. This Package Reference does not duplicate or override that manifest.
-
-## Current Composer and Discovery State
-
-The current Composer keyword set intentionally remains at the canonical minimum while the package has no implemented Runtime API. Additional discovery keywords will be evaluated only when implemented behavior provides accurate, stable terms.
+Composer identity, requirements, dependencies, autoloading, configuration, stability, and distribution metadata are owned by `composer.json`.

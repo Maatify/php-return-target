@@ -7,7 +7,11 @@
 [![Status](https://img.shields.io/badge/Status-Development-blue)](README.md)
 [![PHP](https://img.shields.io/badge/PHP-8.4-8892BF)](composer.json)
 [![License](https://img.shields.io/badge/License-Proprietary-green)](LICENSE)
+
 [![Maatify Ecosystem](https://img.shields.io/badge/Maatify-Ecosystem-blueviolet)](https://github.com/Maatify)
+
+[![Package Reference](https://img.shields.io/badge/Package%20Reference-current-blue)](RETURN_TARGET_PACKAGE_REFERENCE.md)
+[![Changelog](https://img.shields.io/badge/Changelog-Unreleased-lightgrey)](CHANGELOG.md)
 
 A development-stage Composer package for return-target handling. No Runtime API or externally installable release exists yet.
 
@@ -19,7 +23,7 @@ A development-stage Composer package for return-target handling. No Runtime API 
 
 **Development / Unpublished**
 
-The package identity and Composer foundation are established. The Runtime API has not been implemented yet.
+The package identity and initial Composer metadata are established. The Public Runtime API has not been implemented yet.
 
 ## Public Runtime API
 
