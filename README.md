@@ -13,7 +13,7 @@
 [![Package Reference](https://img.shields.io/badge/Package%20Reference-current-blue)](RETURN_TARGET_PACKAGE_REFERENCE.md)
 [![Changelog](https://img.shields.io/badge/Changelog-Unreleased-lightgrey)](CHANGELOG.md)
 
-A development-stage Composer package for return-target handling. No Runtime API or externally installable release exists yet.
+A development-stage Composer package for return-target handling. Runtime implementation has started, but no externally installable release exists yet.
 
 </div>
 
@@ -23,24 +23,30 @@ A development-stage Composer package for return-target handling. No Runtime API 
 
 **Development / Unpublished**
 
-The package identity and initial Composer metadata are established. The Public Runtime API has not been implemented yet.
+The package identity and initial Composer metadata are established. Runtime implementation has started with configuration and exception foundations. The service, token, and crypto Runtime are not implemented yet.
 
 ## Requirements
 
 - PHP `^8.4`
-- No runtime package dependencies beyond PHP.
+- `maatify/exceptions` `^1.0`
 
 ## Installation
 
 No installation command is available because there is no externally published/resolvable package version.
 
-## Public Runtime API
+## Implemented Runtime Foundation
 
-No Public Runtime API is implemented currently. Runtime implementation has not started. The current contract boundary is documented in [RETURN_TARGET_PACKAGE_REFERENCE.md](RETURN_TARGET_PACKAGE_REFERENCE.md).
+- `ReturnTargetConfig`
+- `ReturnTargetExceptionInterface`
+- `InvalidReturnTargetConfigurationException`
+
+`FILE-05` is closed by the real source implementation and a PHPStan maximum-level configuration covering `src/` and `tests/`.
+
+The service, token, and crypto Runtime are not implemented yet. The package does not claim completion of the `DEC-003` Runtime.
 
 ## Boundary
 
-This is a standalone, framework-agnostic Composer package. It does not own a Host application's HTTP, router, session, controller, or authentication flow, and it has no persistence or database behavior currently.
+This is a standalone, framework-agnostic Composer package. It does not own a Host application's HTTP, router, session, controller, or authentication flow, and it has no persistence or database behavior currently. The package remains `Development / Unpublished`.
 
 ## Documentation
 
