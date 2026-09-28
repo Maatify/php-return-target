@@ -4,15 +4,15 @@
 
 - **Decision ID:** `DEC-003`
 - **Title:** Stateless Signed Return Target Runtime and Security Boundary
-- **Status:** `PROPOSED`
+- **Status:** `ACTIVE`
 - **Date:** `2026-09-28`
 - **Decision Authority / Deciders:** Project Owner
 - **Scope / Concern:** Return-target runtime architecture, Public Contract, security boundary, crypto integration, extensibility boundary, and persistence boundary
 - **Supersedes:** None
 - **Superseded By:** None
-- **Canonical Contract / Current Owner:** None — proposal only; no implementation authority until ACTIVE
+- **Canonical Contract / Current Owner:** This Decision Record — active architecture authority until implemented canonical contracts are published
 
-> This record is a proposal. It is not Owner approval, a Runtime implementation authority, or an acceptance decision. No implementation may rely on this record until the record is explicitly changed to `ACTIVE` through the applicable decision-governance process.
+> This record is Owner-approved and `ACTIVE`. It is the implementation authority for its recorded scope. Any material boundary change requires formal reopen or supersession under the Decision Governance Standard.
 
 ## Context
 
@@ -20,13 +20,13 @@
 
 Before the first Runtime Work Unit, the material architecture, security boundary, Public Contract, crypto integration boundary, extensibility boundary, and persistence boundary must be recorded. Earlier implementations in Host projects are evidence for discussion only; they are not this package's contract.
 
-The proposal is designed to consume stable reusable capabilities rather than duplicate them:
+The decision is designed to consume stable reusable capabilities rather than duplicate them:
 
 - `maatify/crypto` stable `v1.0.0`;
 - `maatify/shared-common` stable `v1.0.0`; and
 - `maatify/exceptions` stable `v1.0.0`.
 
-## Proposed Decision
+## Decision
 
 ### 1. Package Capability
 
@@ -317,7 +317,7 @@ Because `maatify/crypto v1.0.0` does not expose a stable generic signing/HMAC Pu
 
 The canonical Runtime directly uses the Hash extension for HMAC operations and the JSON extension for canonical token payload serialization/deserialization and the `JsonSerializable` result contract.
 
-If this decision becomes `ACTIVE` and Runtime implementation begins, the package must declare:
+When Runtime implementation begins under this `ACTIVE` decision, the package must declare:
 
 ```text
 ext-hash *
@@ -326,7 +326,7 @@ ext-json *
 
 as direct Runtime requirements.
 
-This proposal does not modify `composer.json`.
+This decision does not modify `composer.json`.
 
 ### 14. Clock
 
@@ -374,7 +374,7 @@ Only the dependency failures explicitly classified by this decision are converte
 
 Unknown external or infrastructure throwables are not blanket-wrapped and are not swallowed.
 
-### 16. Proposed Public Service Contract
+### 16. Public Service Contract
 
 The shared integration boundary is:
 
@@ -423,7 +423,7 @@ target
 expiresAt
 ```
 
-No additional fields are part of the proposed v1 result contract.
+No additional fields are part of the v1 result contract.
 
 ### 18. Canonical Configuration
 
@@ -849,9 +849,9 @@ A Host requiring different rotation semantics must use a Host-supplied `ReturnTa
 
 `ReturnTargetConfig` must not own secrets, root keys, active keys, verification keys, key status, key stores, or rotation state. These remain owned by the Host and the Crypto boundary.
 
-### 31. Proposed Canonical Runtime Dependencies
+### 31. Canonical Runtime Dependencies
 
-If this decision becomes `ACTIVE` and the canonical implementation is built, the proposed Runtime requirements are:
+Under this `ACTIVE` decision, the canonical Runtime requirements are:
 
 ```text
 php ^8.4
@@ -870,7 +870,7 @@ The canonical package implementation does not own HTTP, PSR-7, framework integra
 
 ### 33. Source Topology
 
-This proposal does not change `DEC-002`. If activated, the package remains `Source Topology: Single Capability`.
+This decision does not change `DEC-002`. Under this `ACTIVE` decision, the package remains `Source Topology: Single Capability`.
 
 Future responsibilities may be materialized only when supported by real Runtime responsibilities:
 
@@ -987,15 +987,15 @@ Unknown-key classification relies only on the public `KeyProviderInterface` cont
 - Canonical security guarantees do not automatically extend to custom implementations.
 - The first Runtime source must be a real implementation, not a placeholder.
 - `FILE-05` may be closed only with real Runtime code and PHPStan configuration.
-- Composer dependencies remain unchanged until this decision is activated and Runtime implementation begins.
-- The Package Reference becomes the canonical current Public Contract after approval and implementation.
+- Composer dependencies remain unchanged until Runtime implementation begins.
+- The Package Reference becomes the canonical current Public Contract after implementation.
 - README, usage examples, CI, and testing must follow the actual implemented behavior.
 - Any material boundary change after activation requires formal reopen or supersession.
 
 ## Decision Index Relationship
 
-This record must be indexed under `Proposed Decisions`, not `Active Decisions`. `DEC-001` and `DEC-002` remain unchanged. This proposal does not supersede either active decision.
+This record is indexed under `Active Decisions`. `DEC-001` and `DEC-002` remain unchanged. This decision does not supersede either active decision.
 
-## Activation Boundary
+## Activation Status
 
-Until an explicit Owner decision changes this record to `ACTIVE`, it does not authorize Runtime implementation, Composer changes, Public Contract publication, or any dependent architecture. Activation requires the corresponding Record and Index status updates together and must follow the repository's Decision Governance Standard.
+Owner approval on `2026-09-28` activates this record. It is now implementation authority for the recorded scope. Dependent Runtime work may proceed only through bounded Work Units and the repository's normal Direct Lead Review process. This activation does not authorize Merge to `main`; every Merge still requires separate explicit Owner authorization.
