@@ -44,15 +44,19 @@ The package will not execute redirects.
 
 ### 2. Dual Integration Path
 
-The package will expose two official integration paths.
+The package exposes two official integration paths.
 
-#### Path A — Canonical Secure Implementation
+#### Path A — Canonical HMAC Implementation
 
-The package will provide a ready-made implementation named `SecureReturnTargetService` implementing `ReturnTargetServiceInterface`. This is the recommended canonical implementation. Its security semantics are fixed and are not a configurable strategy system.
+The package provides `HmacReturnTargetService` implementing `ReturnTargetServiceInterface`. This is the recommended canonical implementation.
+
+Its protocol and security mechanics are fixed package-owned behavior. They are not a configurable strategy system.
+
+The Host supplies only the external inputs required by the canonical boundary: configuration, key material through `KeyProviderInterface`, clock, and an optional restrict-only Host policy.
 
 #### Path B — Host-Supplied Implementation
 
-A Host may provide its own implementation of `ReturnTargetServiceInterface` and replace the canonical implementation without changing the consumer-facing service contract:
+A Host may replace the canonical implementation completely by providing its own implementation of `ReturnTargetServiceInterface`:
 
 ```php
 final class CustomReturnTargetService implements ReturnTargetServiceInterface
@@ -60,29 +64,60 @@ final class CustomReturnTargetService implements ReturnTargetServiceInterface
 }
 ```
 
-When a Host selects this path, the package does not require the Host implementation to use the canonical crypto or token protocol. The custom implementation must nevertheless honor the interface's behavioral Public Contract when it presents itself as a drop-in implementation.
+A Host-supplied implementation may use different token formats, cryptographic mechanisms, key-management semantics, persistence models, validation internals, TTL duration policies, and internal architecture.
+
+It remains a drop-in implementation only while it preserves the shared Public behavioral floor defined below.
 
 #### Common Public Behavioral Floor
 
-Every implementation claiming conformity with `ReturnTargetServiceInterface`, whether canonical or Host-supplied, shares the following behavioral floor:
+Every implementation claiming conformity with `ReturnTargetServiceInterface`, whether canonical or Host-supplied, shares the following behavioral contract:
 
-- `isSafe(string $target): bool` returns `true` only when the target is an internal return target currently accepted by that implementation, is not an external-authority redirect target, and any implementation-specific policy currently applied by that implementation passes. It returns `false` for normal target rejection.
-- `issue(string $target): ?string` returns an opaque transport token string for an accepted internal target, and `null` for normal target rejection. An implementation must not issue a token for a target it currently considers unacceptable, and the service must not substitute an internal fallback.
-- `verify(string $token): ?VerifiedReturnTargetDTO` succeeds only when the token is currently acceptable, its returned target is currently an accepted internal return target, the result is not expired at verification time, and `expiresAt` is the result's Unix expiration instant in seconds. When `current time >= expiresAt`, verification must not succeed. Normal malformed, untrusted, or rejected tokens return `null`.
+- `accepts(string $target): bool` returns `true` only when the target is an internal return target currently accepted by that implementation. It returns `false` for normal target rejection.
+- `issue(string $target): ?string` returns an opaque transport token string for a target currently accepted by that implementation. Normal target rejection returns `null`. The service never substitutes an internal fallback target.
+- `verify(string $token): ?VerifiedReturnTargetDTO` succeeds only when the token is currently accepted, its returned target is currently accepted as an internal return target, and the result has not expired.
+- `VerifiedReturnTargetDTO::$expiresAt` is the authoritative Unix expiration timestamp in seconds for the verified result.
+- Verification must not succeed when `current time >= expiresAt`.
+- Normal malformed, untrusted, expired, or otherwise rejected tokens return `null`.
 
-Every conforming implementation therefore has bounded-lifetime semantics. The exact `1..3600` TTL range remains a policy of `SecureReturnTargetService` only; a custom implementation may choose a different TTL duration while preserving the shared expiry meaning and non-expired verification floor.
+Every conforming implementation therefore has bounded-lifetime semantics.
+
+The exact canonical TTL range, token format, cryptographic mechanism, validation algorithm, key lifecycle, audience rules, and resource limits are not part of this shared behavioral floor unless explicitly stated as such elsewhere. They belong to `HmacReturnTargetService`.
 
 ### 3. Security Guarantee Boundary
 
-The shared interface guarantees apply to every conforming implementation: successful results remain internal-target-only, normal rejection uses `false` or `null`, successful verification means a currently accepted and non-expired result, `expiresAt` has the shared Unix-expiry meaning, and the service performs no internal fallback substitution.
+The shared Public behavioral floor applies to every conforming `ReturnTargetServiceInterface` implementation.
 
-The following implementation-specific guarantees apply to `SecureReturnTargetService` only: its exact RFC-oriented validator rules, 2048-byte target limit, 4096-byte token limit, `rt1` framing, Base64URL canonicalization, HMAC-SHA256, `maatify/crypto` KeyRotation integration, HKDF, the `return-target:token:v1` context, `kid` semantics, audience format and binding, canonical TTL range `1..3600`, canonical crypto/configuration exception mapping, and restrict-only `ReturnTargetPolicyInterface` behavior.
+The following guarantees belong specifically to `HmacReturnTargetService`:
 
-Host-supplied implementations are Host-owned and do not automatically inherit implementation-specific security guarantees of `SecureReturnTargetService`. This boundary must not be described as a security rating of custom implementations; it defines only which implementation owns the stated guarantees.
+- canonical generic internal-target validation;
+- raw and single-decoded security inspection;
+- dot-segment and second-stage decoding-ambiguity rejection;
+- the 2048-byte target bound;
+- the 4096-byte token bound;
+- `rt1` token framing;
+- canonical Base64URL encoding;
+- HMAC-SHA256 signing;
+- constant-time signature comparison;
+- `maatify/crypto` key lifecycle integration;
+- `StrictSingleActiveKeyPolicy`;
+- HKDF key derivation;
+- the `return-target:token:v1` HKDF context;
+- `kid` transport semantics;
+- canonical audience format and binding;
+- canonical TTL range `1..3600`;
+- canonical configuration and crypto failure mapping;
+- `ReturnTargetRestrictionPolicyInterface` semantics; and
+- exact original-target representation preservation.
+
+Host-supplied implementations are Host-owned and do not automatically inherit these implementation-specific guarantees.
+
+This distinction is an ownership boundary, not a security rating of Host-supplied implementations.
 
 ### 4. No Strategy Explosion Inside the Canonical Implementation
 
-`SecureReturnTargetService` must not expose pluggable strategies for changing its security protocol. It must not introduce any of the following merely to permit customization:
+`HmacReturnTargetService` does not expose pluggable strategies for changing its canonical protocol or cryptographic behavior.
+
+The canonical implementation does not introduce contracts such as:
 
 ```text
 SignerInterface
@@ -94,42 +129,64 @@ TokenFormatInterface
 GenericValidatorOverrideInterface
 ```
 
-Changing those semantics requires another `ReturnTargetServiceInterface` implementation rather than configurable internals in the canonical service.
+Changing canonical protocol, crypto, key-lifecycle, normalization, or token-format semantics requires replacing the complete `ReturnTargetServiceInterface` implementation.
 
-### 5. Safe Extension Inside the Canonical Implementation
+The only bounded Host extension inside `HmacReturnTargetService` is the restrict-only policy defined below.
 
-The only bounded extension point inside the canonical implementation is an optional Host-specific restriction policy:
+### 5. Restrict-Only Host Extension
+
+The canonical implementation supports exactly one Host-specific policy extension:
 
 ```php
-interface ReturnTargetPolicyInterface
+interface ReturnTargetRestrictionPolicyInterface
 {
-    public function allows(string $target): bool;
+    public function allows(string $inspectionTarget): bool;
 }
 ```
 
-The policy may restrict targets for Host-specific reasons, such as rejecting `/login`, `/logout`, or `/2fa/setup`. It may not redefine generic package safety.
+This policy is optional and restrict-only.
+
+It may reject targets for Host-specific reasons such as `/login`, `/logout`, `/2fa`, or `/admin`.
+
+It cannot make a target acceptable when canonical generic validation has rejected it.
+
+The policy receives only the canonical validated single-decoded security-inspection target and is invoked exactly once per acceptance evaluation.
 
 ### 6. Restrict-Only Policy Rule
 
-The canonical order is:
+The canonical acceptance order is:
 
 ```text
-Generic Package Safety
-→ MUST PASS
-
-Optional Host Policy
-→ MUST PASS
-
-Target Accepted
+Original target
+→ raw canonical validation
+→ single percent-decoded security inspection
+→ decoded canonical safety validation
+→ dot-segment and second-stage ambiguity checks
+→ optional ReturnTargetRestrictionPolicyInterface::allows($inspectionTarget)
+→ accepted
 ```
 
-An unsafe target such as `//evil.example` remains rejected even if the Host policy returns `true`.
+Every package-owned validation step must pass before the optional Host restriction policy is consulted.
 
-### 7. Policy Application Semantics
+The restriction policy cannot widen the canonical safety boundary.
 
-For the canonical implementation, `isSafe()` represents effective service acceptance: generic safety and the optional Host policy must both pass.
+The restriction policy is called exactly once and receives the validated single-decoded inspection representation only.
 
-`issue()` applies the same effective policy before issuing a token. After cryptographic verification, `verify()` re-applies generic safety to the recovered target and then applies the current Host policy to the original target and, when different, its single-decoded inspection view. Every evaluation must allow the target. It returns a DTO only when all checks pass. Consequently, changing the Host policy may make an old token cryptographically valid but currently unacceptable; this is intentional.
+### 7. Acceptance and Policy Semantics
+
+For `HmacReturnTargetService`, `accepts()` represents effective current acceptance.
+
+A target is accepted only when canonical generic validation succeeds and the optional `ReturnTargetRestrictionPolicyInterface` allows the validated inspection target.
+
+`issue()` uses the same acceptance path before creating a token.
+
+After cryptographic verification, `verify()` re-runs the same canonical validation and restriction-policy path against the recovered target before returning a result.
+
+Changing Host restriction policy may therefore make an existing token cryptographically valid but currently unacceptable. In that case `verify()` returns `null`.
+
+The restriction policy is not applied to the original raw representation separately. It receives the validated single-decoded inspection representation exactly once.
+
+The exact original representation remains the representation stored in the token and returned after successful verification.
 
 ### 8. Stateless and Persistence Boundary
 
@@ -145,25 +202,74 @@ The package does not know Host route names.
 
 ### 10. Canonical Package Ownership
 
-`SecureReturnTargetService` owns the generic internal-target safety floor, canonical token protocol and version, token serialization, HMAC signing, signature verification, expiry semantics, audience binding, `kid` transport semantics, configuration validation, Base64URL canonicalization, resource/input bounds, and revalidation after verification.
+`HmacReturnTargetService` owns:
+
+- canonical generic internal-target validation;
+- token protocol and version;
+- token serialization;
+- HMAC signing;
+- signature verification;
+- expiry enforcement;
+- audience binding;
+- `kid` transport semantics;
+- canonical configuration validation;
+- Base64URL canonicalization;
+- resource and input bounds;
+- canonical key-rotation policy composition;
+- HKDF composition;
+- decoded security inspection;
+- Host restriction-policy invocation semantics; and
+- revalidation after token verification.
 
 ### 11. Canonical Crypto Integration
 
-The canonical implementation will depend at Runtime on `maatify/crypto ^1.0` and consume these stable capabilities:
+`HmacReturnTargetService` depends at Runtime on `maatify/crypto ^1.0`.
+
+The Host supplies:
 
 ```text
+Maatify\Crypto\KeyRotation\KeyProviderInterface
+```
+
+The Host owns the source and loading of key material.
+
+The canonical implementation itself owns the composition of:
+
+```text
+Maatify\Crypto\KeyRotation\Policy\StrictSingleActiveKeyPolicy
 Maatify\Crypto\KeyRotation\KeyRotationService
 Maatify\Crypto\HKDF\HKDFService
 Maatify\Crypto\HKDF\HKDFContext
 ```
 
-Issuance uses `KeyRotationService::activeEncryptionKey()` to obtain the active key ID and root material, then HKDF to derive a 32-byte signing key. Verification uses the token `kid` with `KeyRotationService::decryptionKey(kid)` and the same HKDF context. The exact context is:
+The Host does not inject a custom `KeyRotationPolicyInterface` into the canonical path.
+
+Canonical issuance performs:
 
 ```text
-return-target:token:v1
+KeyProviderInterface
+→ KeyRotationService configured with StrictSingleActiveKeyPolicy
+→ activeEncryptionKey()
+→ active key ID + root key material
+→ HKDF with context return-target:token:v1
+→ 32-byte derived signing key
+→ HMAC-SHA256
 ```
 
-Minimum root-key rules and key lifecycle policy remain owned by `maatify/crypto`.
+Canonical verification performs:
+
+```text
+token kid
+→ KeyRotationService configured with StrictSingleActiveKeyPolicy
+→ decryptionKey(kid)
+→ HKDF with context return-target:token:v1
+→ 32-byte derived signing key
+→ HMAC verification
+```
+
+Minimum root-key requirements and the semantics implemented by `StrictSingleActiveKeyPolicy` remain owned by `maatify/crypto`.
+
+A Host requiring different key-lifecycle or rotation semantics must use its own `ReturnTargetServiceInterface` implementation rather than altering the canonical implementation.
 
 ### 12. HMAC Ownership
 
@@ -195,12 +301,12 @@ Invalid audience or TTL configuration, missing or invalid active crypto keys, br
 
 ### 16. Proposed Public Service Contract
 
-The common integration boundary is:
+The shared integration boundary is:
 
 ```php
 interface ReturnTargetServiceInterface
 {
-    public function isSafe(string $target): bool;
+    public function accepts(string $target): bool;
 
     public function issue(string $target): ?string;
 
@@ -208,31 +314,48 @@ interface ReturnTargetServiceInterface
 }
 ```
 
-This boundary is shared by the canonical secure implementation and Host-supplied implementations.
+This interface is the common substitution boundary for `HmacReturnTargetService` and conforming Host-supplied implementations.
+
+Its behavioral meaning is defined by the Common Public Behavioral Floor in this decision.
 
 ### 17. Verified Result DTO
 
-The canonical verified result is:
+The shared verified-result contract is:
 
 ```php
-final readonly class VerifiedReturnTargetDTO
+final readonly class VerifiedReturnTargetDTO implements \JsonSerializable
 {
     public function __construct(
         public string $target,
         public int $expiresAt,
     ) {
     }
+
+    public function jsonSerialize(): mixed
+    {
+        return [
+            'target' => $this->target,
+            'expiresAt' => $this->expiresAt,
+        ];
+    }
 }
 ```
 
-No additional fields are proposed at this time.
+The JSON keys are exactly:
 
-### 18. Canonical Configuration DTO
+```text
+target
+expiresAt
+```
 
-The canonical implementation will use:
+No additional fields are part of the proposed v1 result contract.
+
+### 18. Canonical Configuration
+
+`HmacReturnTargetService` uses the following package configuration contract:
 
 ```php
-final readonly class ReturnTargetConfigDTO
+final readonly class ReturnTargetConfig
 {
     public function __construct(
         public string $audience,
@@ -242,52 +365,111 @@ final readonly class ReturnTargetConfigDTO
 }
 ```
 
-It must not contain a mode, driver, algorithm, signer, encoder, secret, root key, active key, verification keys, rotation state, or custom validator. The DTO describes policy configuration and does not choose architecture. A custom Host implementation is not required to use it.
+`ReturnTargetConfig` is configuration, not a DTO.
 
-### 19. Canonical Service Dependencies
-
-The proposed constructor boundary is:
+Its future canonical placement is:
 
 ```text
-SecureReturnTargetService(
-    ReturnTargetConfigDTO $config,
-    KeyRotationService $keyRotation,
-    HKDFService $hkdf,
+src/Config/ReturnTargetConfig.php
+```
+
+It does not contain:
+
+```text
+mode
+driver
+algorithm
+signer
+encoder
+secret
+root key
+active key
+verification keys
+rotation state
+custom validator
+custom crypto policy
+```
+
+The configuration describes canonical Return Target policy values only. It does not select architecture.
+
+A Host-supplied `ReturnTargetServiceInterface` implementation is not required to use `ReturnTargetConfig`.
+
+### 19. Canonical Service Boundary
+
+The proposed public construction boundary for the canonical implementation is:
+
+```php
+HmacReturnTargetService(
+    ReturnTargetConfig $config,
+    KeyProviderInterface $keyProvider,
     ClockInterface $clock,
-    ?ReturnTargetPolicyInterface $policy = null,
+    ?ReturnTargetRestrictionPolicyInterface $restrictionPolicy = null,
 )
 ```
 
-No class is implemented by this proposal.
+The canonical implementation internally owns:
+
+```text
+StrictSingleActiveKeyPolicy
+KeyRotationService
+HKDFService
+```
+
+The Host supplies key material only through `KeyProviderInterface`.
+
+No Runtime class is implemented by this proposal.
 
 ### 20. Public Failure Semantics
 
-For the canonical implementation:
+For `HmacReturnTargetService`:
 
-- `isSafe()` returns `true` only when generic safety and the optional Host policy pass; otherwise it returns `false`.
-- `issue()` returns a signed token for an accepted target, `null` for generic or Host-policy rejection, and a typed exception for configuration or crypto setup failure.
-- `verify()` returns `VerifiedReturnTargetDTO` for a valid, currently accepted token, `null` for normal untrusted-input or token rejection, and a typed exception for configuration or crypto setup failure.
+- `accepts()` returns `true` only when the target passes canonical generic validation and the optional Host restriction policy.
+- `accepts()` returns `false` for normal target rejection.
+- `issue()` returns a signed token for a currently accepted target.
+- `issue()` returns `null` for normal target rejection.
+- `verify()` returns `VerifiedReturnTargetDTO` only for a valid, currently accepted, non-expired token.
+- `verify()` returns `null` for normal malformed, untrusted, expired, policy-rejected, or otherwise invalid token input.
+- configuration or crypto setup failures use the typed exception contract defined by this decision.
 
-There is no internal fallback behavior.
+The service never substitutes an internal fallback target.
 
 ### 21. Behavioral Requirements for Host-Supplied Implementations
 
-A custom `ReturnTargetServiceInterface` implementation may change its token format, cryptographic mechanism, key-management mechanism, storage model, internal architecture, stricter validation policy, and TTL duration policy. A custom implementation that claims drop-in compatibility must nevertheless preserve the common behavioral floor:
+A Host-supplied implementation may change:
 
 ```text
-isSafe()
-→ boolean acceptance result
+token format
+cryptographic mechanism
+key-management mechanism
+key-rotation policy
+storage model
+persistence model
+validation internals
+TTL duration
+internal architecture
+signing or encryption mechanism
+```
+
+A Host-supplied implementation is a conforming drop-in `ReturnTargetServiceInterface` implementation only while it preserves the shared behavioral floor:
+
+```text
+accepts()
+→ current internal-target acceptance
 
 issue()
-→ token/string on accepted target
+→ opaque token string for an accepted target
 → null on normal target rejection
 
 verify()
-→ VerifiedReturnTargetDTO on accepted valid token
-→ null on normal untrusted-token rejection
+→ currently accepted, non-expired VerifiedReturnTargetDTO
+→ null on normal token rejection
 ```
 
-In particular, a successful target remains internal, normal target rejection is `false` or `null`, normal token rejection is `null`, successful verification returns a currently accepted non-expired result, and `expiresAt` is the actual Unix expiration instant in seconds. A Host implementation that changes these meanings is not a drop-in implementation of the same Public Contract. Its protocol, crypto, and storage internals remain Host-owned. Expected malformed or untrusted input must not be used as exception-driven control flow when the implementation claims full interface behavioral compatibility.
+`VerifiedReturnTargetDTO::$expiresAt` remains the actual Unix expiration timestamp in seconds.
+
+A Host implementation that changes these shared meanings is not a drop-in implementation of the same Public Contract.
+
+The package-specific `rt1`, HMAC, HKDF, audience, `kid`, canonical TTL range, canonical validation algorithm, canonical resource limits, and canonical restriction-policy semantics do not apply to a Host-supplied implementation unless that Host intentionally adopts them.
 
 ### 22. Canonical Generic Target Safety Contract
 
@@ -301,7 +483,13 @@ The single-decoded inspection view must be rejected if it contains NUL, an ASCII
 
 The path is also rejected when either the raw path or the single-decoded inspection path contains a complete segment exactly equal to `.` or `..` after splitting on `/`. This includes encoded forms that become `.` or `..` after the single decoding. The package does not perform dot-segment normalization.
 
-Validation performs no trimming, mutation, normalization, or recursive decoding. The optional Host policy is applied to the original target and, when the single-decoded inspection view differs, to that decoded view as well; every evaluation must allow the target. This prevents a Host route restriction from being bypassed by percent encoding while preserving the restrict-only rule. The canonical service contains no Host-route denylist.
+Validation performs no trimming, mutation, normalization, or recursive decoding. After canonical raw and decoded security validation succeeds, the optional `ReturnTargetRestrictionPolicyInterface` is invoked exactly once with the validated single-decoded inspection target.
+
+The restriction policy is not invoked separately with the original encoded representation.
+
+This gives Host route restrictions one deterministic semantic representation and prevents percent-encoding from bypassing Host-specific restrictions.
+
+The exact original target representation remains unchanged and is the representation written to the token payload and returned after successful verification. The canonical service contains no Host-route denylist.
 
 Successful issuance and verification preserve the original representation exactly: the exact original target is issued, stored in the token payload, recovered, and returned. The decoded inspection view is never stored instead of the original and is never returned to the consumer.
 
@@ -351,13 +539,33 @@ Audience is mandatory and has length 1–64 bytes. Allowed characters are `A-Z`,
 
 ### 29. Canonical Key Rotation Semantics
 
-New tokens use `KeyRotationService::activeEncryptionKey()`. Verification uses `KeyRotationService::decryptionKey(kid)`. The canonical service does not rebuild key-status policy; active/inactive/decryption eligibility remains owned by `maatify/crypto`.
+`HmacReturnTargetService` composes `KeyRotationService` internally using `StrictSingleActiveKeyPolicy` and the Host-supplied `KeyProviderInterface`.
 
-An unknown or non-verifiable key in untrusted input is a normal verification rejection and returns `null`. A broken Host crypto configuration or invariant remains exceptional.
+New canonical tokens use:
 
-### 30. No Secret Ownership in `ReturnTargetConfigDTO`
+```text
+KeyRotationService::activeEncryptionKey()
+```
 
-`ReturnTargetConfigDTO` must not own secrets, root keys, active keys, verification keys, key status, key stores, or rotation state. These remain owned by the Host and the Crypto boundary.
+Canonical verification uses:
+
+```text
+KeyRotationService::decryptionKey(kid)
+```
+
+The canonical implementation does not accept a Host-supplied `KeyRotationPolicyInterface`.
+
+The active, inactive, retired, encryption, and decryption semantics enforced by `StrictSingleActiveKeyPolicy` remain owned by `maatify/crypto`.
+
+An unknown or non-verifiable key referenced by untrusted token input is a normal verification rejection and returns `null`.
+
+A broken Host key provider or invalid canonical crypto configuration remains exceptional.
+
+A Host requiring different rotation semantics must use a Host-supplied `ReturnTargetServiceInterface` implementation.
+
+### 30. No Secret Ownership in `ReturnTargetConfig`
+
+`ReturnTargetConfig` must not own secrets, root keys, active keys, verification keys, key status, key stores, or rotation state. These remain owned by the Host and the Crypto boundary.
 
 ### 31. Proposed Canonical Runtime Dependencies
 
@@ -379,7 +587,7 @@ The canonical package implementation does not own HTTP, PSR-7, framework integra
 
 ### 33. Source Topology
 
-This proposal does not change `DEC-002`. If activated, the package remains `Source Topology: Single Capability`. Future responsibilities such as `Config/`, `DTO/`, `Exception/`, `Service/`, and `Validation/` may be materialized only when supported by real Runtime responsibilities. This Work Unit creates no source files.
+This proposal does not change `DEC-002`. If activated, the package remains `Source Topology: Single Capability`. Future responsibilities such as `Config/`, `DTO/`, `Exception/`, `Service/`, and `Validation/` may be materialized only when supported by real Runtime responsibilities. Interfaces will be placed in the responsibility that owns them according to the Package Building Standard, rather than in a root generic `Contract/` directory by default. This Work Unit creates no source files.
 
 ### 34. Alternatives Considered
 
@@ -387,7 +595,7 @@ This proposal does not change `DEC-002`. If activated, the package remains `Sour
 
 Not preferred as the canonical path because protocol and integrity logic would be repeated across Hosts. It remains permitted only through a custom `ReturnTargetServiceInterface` implementation.
 
-#### B. Pluggable crypto strategies inside `SecureReturnTargetService`
+#### B. Pluggable crypto strategies inside `HmacReturnTargetService`
 
 Rejected because guarantees would become conditional and the canonical implementation would suffer abstraction explosion.
 
@@ -423,9 +631,19 @@ The canonical security protocol remains locked so its guarantees stay understand
 
 The stateless design is appropriate because a return-target token is not an authentication or authorization credential and there is no established domain need for one-time persistence. The signed, non-encrypted design is intentional because the requirement is integrity, authenticity, and bounded lifetime, not confidentiality. Host ownership of HTTP, authentication, sessions, redirects, and secrets prevents framework and application coupling. Finally, a shared behavioral floor gives `ReturnTargetServiceInterface` one consistent meaning when a Host replaces the implementation.
 
+The canonical path also owns its `StrictSingleActiveKeyPolicy`, `KeyRotationService` composition, and `HKDFService` composition so the Host cannot silently change canonical cryptographic semantics while still using the canonical implementation. The Host retains ownership of key material and key sourcing through `KeyProviderInterface`. Hosts requiring different crypto or key-lifecycle behavior use the complete service-replacement path.
+
+The shared method name `accepts()` is intentionally broader than a generic safety predicate because the result includes both package safety and current implementation policy. `ReturnTargetRestrictionPolicyInterface` is intentionally narrow and receives one validated inspection representation exactly once. `ReturnTargetConfig` is configuration rather than a result DTO, while `VerifiedReturnTargetDTO` remains a true result snapshot. `HmacReturnTargetService` names the canonical mechanism precisely without assigning a security rating to alternative conforming implementations.
+
 ### 35. Consequences
 
 - The package has a recommended canonical implementation with fixed security semantics.
+- `HmacReturnTargetService` is the recommended canonical implementation.
+- The canonical implementation owns `StrictSingleActiveKeyPolicy`, `KeyRotationService` composition, and `HKDFService` composition.
+- The Host supplies canonical key material through `KeyProviderInterface`.
+- Host-specific restriction is available only through the narrow `ReturnTargetRestrictionPolicyInterface`.
+- Full behavioral customization occurs by replacing `ReturnTargetServiceInterface`, not by injecting strategies into `HmacReturnTargetService`.
+- `ReturnTargetConfig` is a configuration contract, while `VerifiedReturnTargetDTO` is a result DTO.
 - The package does not become a strategy or plugin framework.
 - Host-specific restrictions are possible through a restrict-only policy.
 - Hosts with materially different requirements can replace the service implementation entirely.
