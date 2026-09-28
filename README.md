@@ -41,6 +41,8 @@ No installation command is available because there is no externally published/re
 
 ## Public Runtime API
 
+See [RETURN_TARGET_PACKAGE_REFERENCE.md](RETURN_TARGET_PACKAGE_REFERENCE.md) for the complete canonical Public Runtime Contract.
+
 - `ReturnTargetServiceInterface` — public substitution boundary for `accepts()`, `issue()`, and `verify()`.
 - `HmacReturnTargetService` — canonical implementation using `ReturnTargetConfig`, a crypto `KeyProviderInterface`, `ClockInterface`, and an optional restrict-only policy.
 - `ReturnTargetRestrictionPolicyInterface` — optional Host-owned policy receiving the validated single-decoded inspection target.

@@ -21,4 +21,4 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ### Remaining Readiness Work
 
 - Consumer Verification Harness, CI, consumer guides/examples, and final presentation/release readiness remain incomplete.
-- The package remains `Development / Unpublished`; no release or Lead acceptance is claimed.
+- The package remains `Development / Unpublished`.

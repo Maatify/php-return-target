@@ -43,6 +43,41 @@ final class HmacReturnTargetServiceTest extends TestCase
         self::assertSame([], $policy->targets);
     }
 
+    public function testPolicyRunsExactlyOnceForAcceptsIssueAndSuccessfulVerify(): void
+    {
+        $policy = new RecordingPolicy(true);
+        $service = $this->service($policy, new FixedClock(1790000000), 60);
+
+        self::assertTrue($service->accepts('/orders%2F15'));
+        self::assertSame(['/orders/15'], $policy->targets);
+
+        $policy->targets = [];
+        $token = $service->issue('/orders%2F15');
+        self::assertNotNull($token);
+        self::assertSame(['/orders/15'], $policy->targets);
+
+        $policy->targets = [];
+        self::assertNotNull($service->verify($token));
+        self::assertSame(['/orders/15'], $policy->targets);
+    }
+
+    public function testMalformedOrUntrustedTokenReturnsNullThroughPublicService(): void
+    {
+        self::assertNull($this->service()->verify('not-a-valid-return-target-token'));
+    }
+
+    public function testCurrentRejectingPolicyInvalidatesPreviouslyIssuedToken(): void
+    {
+        $policy = new RecordingPolicy(true);
+        $service = $this->service($policy, new FixedClock(1790000000), 60);
+        $token = $service->issue('/orders/15');
+        self::assertNotNull($token);
+
+        $policy->allowed = false;
+
+        self::assertNull($service->verify($token));
+    }
+
     public function testPolicyRejectionAndExpiryBoundaryReturnNull(): void
     {
         $clock = new FixedClock(1790000000);
@@ -126,7 +161,7 @@ final class RecordingPolicy implements ReturnTargetRestrictionPolicyInterface
     /** @var list<string> */
     public array $targets = [];
 
-    public function __construct(private readonly bool $allowed) {}
+    public function __construct(public bool $allowed) {}
 
     public function allows(string $inspectionTarget): bool
     {

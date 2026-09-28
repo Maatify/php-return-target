@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace Maatify\ReturnTarget\DTO;
 
 /**
- * Public result containing the exact recovered target and its absolute expiry timestamp.
+ * Public result containing the exact recovered target and its authoritative Unix expiry
+ * timestamp in seconds.
  */
 final readonly class VerifiedReturnTargetDTO implements \JsonSerializable
 {

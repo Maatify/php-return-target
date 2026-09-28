@@ -6,6 +6,10 @@ namespace Maatify\ReturnTarget\Validation;
 
 /**
  * Optional Host-owned, restrict-only policy evaluated after canonical validation.
+ *
+ * It cannot make a canonically rejected target acceptable. The canonical service calls
+ * it exactly once per acceptance evaluation and passes only the validated single-decoded
+ * inspection representation.
  */
 interface ReturnTargetRestrictionPolicyInterface
 {

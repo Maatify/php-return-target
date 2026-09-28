@@ -25,6 +25,12 @@ final class HmacReturnTargetService implements ReturnTargetServiceInterface
 
     private readonly HmacReturnTargetTokenCodec $codec;
 
+    /**
+     * Constructs the canonical service from canonical audience/TTL configuration,
+     * Host-owned key material, the source of current time, and an optional restrict-only
+     * policy. The service owns composition of its internal validator and codec; neither
+     * is a Host-pluggable strategy.
+     */
     public function __construct(
         private readonly ReturnTargetConfig $config,
         KeyProviderInterface $keyProvider,
@@ -37,6 +43,8 @@ final class HmacReturnTargetService implements ReturnTargetServiceInterface
 
     /**
      * Accepts only targets passing canonical validation and the optional restrict-only policy.
+     * Normal target rejection returns false. Classified canonical crypto failures do not
+     * arise from this operation; policy throwables propagate unchanged.
      */
     public function accepts(string $target): bool
     {
@@ -45,6 +53,9 @@ final class HmacReturnTargetService implements ReturnTargetServiceInterface
 
     /**
      * Issues an expiring token for the exact accepted target, or null for normal rejection.
+     * Classified canonical crypto/key configuration failures may propagate as
+     * ReturnTargetCryptoConfigurationException. Unclassified provider and policy
+     * throwables propagate unchanged; the service does not catch or blanket-wrap them.
      */
     public function issue(string $target): ?string
     {
@@ -59,6 +70,10 @@ final class HmacReturnTargetService implements ReturnTargetServiceInterface
 
     /**
      * Verifies the codec payload and re-applies current canonical validation and policy.
+     * Normal malformed, untrusted, expired, or rejected tokens return null. Classified
+     * canonical crypto/key configuration failures may propagate as
+     * ReturnTargetCryptoConfigurationException; unclassified provider and policy
+     * throwables propagate unchanged.
      */
     public function verify(string $token): ?VerifiedReturnTargetDTO
     {
@@ -73,6 +88,11 @@ final class HmacReturnTargetService implements ReturnTargetServiceInterface
         );
     }
 
+    /**
+     * Produces acceptance evidence through canonical validation first and an optional
+     * policy second. The policy is called once at most and receives only the validated
+     * inspection representation; this value never replaces the original target.
+     */
     private function acceptedInspection(string $target): ?string
     {
         $inspectionTarget = $this->validator->inspect($target);

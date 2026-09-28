@@ -5,11 +5,14 @@ declare(strict_types=1);
 namespace Maatify\ReturnTarget\Validation;
 
 /**
+ * @internal
+ *
  * Validates canonical generic targets and returns a single-decoded inspection view.
  *
  * The inspection view is never a replacement representation: callers retain and use
- * the original input for token payloads and public output. Decoding is performed
- * exactly once, with plus signs preserved literally.
+ * the original input for token payloads and public output. This package-internal
+ * validator is not a Public API or Host extension point. Decoding is performed exactly
+ * once, with plus signs preserved literally, for security inspection only.
  */
 final class CanonicalReturnTargetValidator
 {
