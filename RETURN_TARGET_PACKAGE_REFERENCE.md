@@ -17,7 +17,8 @@ Service, token, and crypto Runtime behavior is not implemented yet. This package
 - The package currently has no persistence, database, SQL, or PDO behavior.
 - The package does not own framework, HTTP, router, session, or controller behavior.
 - The package does not contain Host-specific authentication flows.
-- No Public Runtime API is implemented currently.
+- The currently implemented Public Runtime API is limited to `ReturnTargetConfig`, `ReturnTargetExceptionInterface`, and `InvalidReturnTargetConfigurationException`.
+- Service, token, validation, and crypto Runtime APIs are not implemented yet.
 
 ## Source Topology
 

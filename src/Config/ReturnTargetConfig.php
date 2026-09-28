@@ -24,14 +24,21 @@ final readonly class ReturnTargetConfig
         public string $audience,
         public int $ttlSeconds,
     ) {
+        $audienceLength = strlen($audience);
+
         if (
-            strlen($audience) < 1
-            || strlen($audience) > 64
-            || preg_match('/^[A-Za-z0-9._-]+$/', $audience) !== 1
+            $audienceLength < 1
+            || $audienceLength > 64
+            || strspn(
+                $audience,
+                'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789._-',
+            ) !== $audienceLength
             || $ttlSeconds < 1
             || $ttlSeconds > 3600
         ) {
-            throw new InvalidReturnTargetConfigurationException('Invalid return-target configuration.');
+            throw new InvalidReturnTargetConfigurationException(
+                'Invalid return-target configuration.',
+            );
         }
     }
 }

@@ -23,6 +23,15 @@ final class ReturnTargetConfigTest extends TestCase
         self::assertSame($audience, $config->audience);
     }
 
+    public function testCompleteAllowedAudienceCharacterClassesAreAccepted(): void
+    {
+        $audience = 'AZaz09._-';
+
+        $config = new ReturnTargetConfig($audience, 60);
+
+        self::assertSame($audience, $config->audience);
+    }
+
     public function testValidAudienceAndTtlAreAccepted(): void
     {
         $config = new ReturnTargetConfig('admin-auth_v1.2', 120);
