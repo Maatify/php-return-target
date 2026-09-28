@@ -18,14 +18,14 @@ The internal `HmacReturnTargetTokenCodec` implements the canonical `rt1` token a
 - The package currently has no persistence, database, SQL, or PDO behavior.
 - The package does not own framework, HTTP, router, session, or controller behavior.
 - The package does not contain Host-specific authentication flows.
-- The currently implemented Public Runtime API is limited to `ReturnTargetConfig`, `ReturnTargetExceptionInterface`, and `InvalidReturnTargetConfigurationException`.
-- Service, token, validation, and crypto Runtime APIs are not implemented yet.
+- The currently implemented Public Runtime API is limited to `ReturnTargetConfig`, `ReturnTargetExceptionInterface`, `InvalidReturnTargetConfigurationException`, and `ReturnTargetCryptoConfigurationException`.
+- The internal token/crypto codec is implemented but is not a Public API; the public service, target validation, restriction policy, and Clock APIs are not implemented yet.
 
 ## Source Topology
 
 **Source Topology: Single Capability**, as recorded in the Owner-approved [DEC-002 — Single Capability Source Topology](docs/decisions/DEC-002-SINGLE-CAPABILITY-SOURCE-TOPOLOGY.md).
 
-The `Config/` and `Exception/` responsibilities are materialized for the implemented Runtime foundation.
+The `Adapter/`, `Config/`, `DTO/`, and `Exception/` responsibilities are materialized for the implemented Runtime foundation.
 
 `FILE-05` is closed by the real source implementation and PHPStan maximum-level configuration covering `src/` and `tests/`.
 

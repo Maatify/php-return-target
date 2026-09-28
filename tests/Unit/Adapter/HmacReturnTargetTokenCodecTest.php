@@ -188,7 +188,6 @@ final class HmacReturnTargetTokenCodecTest extends TestCase
         }
     }
 
-    /** @return InMemoryKeyProvider */
     private function provider(?CryptoKeyInterface $key = null, ?Throwable $findFailure = null, int $failAfterFinds = 0): InMemoryKeyProvider|StubKeyProvider
     {
         if ($findFailure !== null) {

@@ -23,7 +23,7 @@ A development-stage Composer package for return-target handling. Runtime impleme
 
 **Development / Unpublished**
 
-The package identity and initial Composer metadata are established. Runtime implementation has started with configuration and exception foundations. The service, token, and crypto Runtime are not implemented yet.
+The package identity and initial Composer metadata are established. Runtime implementation has started with configuration and exception foundations plus the canonical internal `rt1` token/crypto codec. The public service, target validation, restriction policy, and Clock flow are not implemented yet.
 
 ## Requirements
 
@@ -42,6 +42,7 @@ No installation command is available because there is no externally published/re
 - `ReturnTargetConfig`
 - `ReturnTargetExceptionInterface`
 - `InvalidReturnTargetConfigurationException`
+- `ReturnTargetCryptoConfigurationException`
 
 `FILE-05` is closed by the real source implementation and a PHPStan maximum-level configuration covering `src/` and `tests/`.
 

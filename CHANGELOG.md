@@ -17,5 +17,5 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Not Implemented Yet
 
-- Service, token, and crypto Runtime behavior remain outside this Work Unit.
+- The public service, target validation, restriction policy, and Clock flow remain outside this Work Unit.
 - The package remains `Development / Unpublished`; `DEC-003` Runtime is not complete.
