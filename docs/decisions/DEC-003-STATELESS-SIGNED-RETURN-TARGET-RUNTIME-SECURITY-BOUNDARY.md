@@ -208,7 +208,7 @@ The canonical HMAC path is composed of two package-owned responsibilities.
 
 `HmacReturnTargetService` is the final public orchestration service. It owns the public workflow across target acceptance, clock use, optional Host restriction, token issuance, token verification, and final result acceptance. It does not catch dependency exceptions.
 
-A package-internal final `HmacReturnTargetTokenCodec` owns canonical token and crypto mechanics:
+A package-internal final Adapter, `HmacReturnTargetTokenCodec`, owns canonical token and crypto mechanics:
 
 - `rt1` framing and parsing;
 - token serialization;
@@ -271,12 +271,15 @@ StrictSingleActiveKeyPolicy::validate(KeyProviderInterface)
 Canonical verification performs:
 
 ```text
-parse canonical token
+canonical token framing/Base64URL checks
+→ decode kid/payload/signature segments
+→ require decoded signature = 32 bytes
 → StrictSingleActiveKeyPolicy::validate(KeyProviderInterface)
 → KeyProviderInterface::find(kid) existence probe
 → KeyRotationService::decryptionKey(kid)
 → HKDF with context return-target:token:v1
-→ HMAC verification
+→ HMAC verification over exact received signing input
+→ canonical JSON/type validation
 → audience verification
 → expiry verification
 → internal VerifiedTokenPayloadDTO
@@ -628,7 +631,7 @@ The canonical token is signed, not encrypted. Its purpose is integrity, authenti
 
 ### 24. Canonical Token Protocol v1
 
-The exact token form is:
+The exact canonical token form is:
 
 ```text
 rt1.{kidSegment}.{payloadSegment}.{signatureSegment}
@@ -636,21 +639,167 @@ rt1.{kidSegment}.{payloadSegment}.{signatureSegment}
 
 There are exactly four non-empty dot-separated segments.
 
-The version is `rt1`; any other version causes `verify()` to return `null`. `kidSegment` is the exact Crypto key ID encoded as unpadded Base64URL. Canonical issuance requires the active Crypto key ID to be non-empty before Base64URL encoding. An empty active key ID is a canonical crypto-configuration failure and throws `ReturnTargetCryptoConfigurationException`; issuance must not produce a token with an empty `kidSegment`. `payloadSegment` is unpadded Base64URL for a JSON payload with exactly these keys and no extras:
+The version is exactly `rt1`. Any other version causes `verify()` to return `null`.
 
-```json
-{
-  "aud": "admin-auth",
-  "t": "/orders/15?tab=payment",
-  "exp": 1790000000
-}
+`kidSegment` is the exact Crypto key ID encoded as canonical unpadded Base64URL.
+
+Canonical issuance requires the active Crypto key ID to be non-empty before Base64URL encoding. An empty active key ID is a canonical crypto-configuration failure and throws `ReturnTargetCryptoConfigurationException`.
+
+The canonical payload has exactly these semantic members:
+
+```text
+aud: string
+t: string
+exp: int
 ```
 
-The signature input is `rt1.{kidSegment}.{payloadSegment}`. The signature is raw `HMAC-SHA256` output using the 32-byte HKDF-derived signing key, encoded as unpadded Base64URL.
+Canonical issuance constructs the payload array in this exact member order:
 
-### 25. Base64URL Contract
+```text
+aud
+t
+exp
+```
 
-The canonical implementation uses the RFC 4648 URL-safe alphabet without `=` padding. Verification rejects invalid alphabets, empty required segments, invalid decoding, and non-canonical representations. For each segment, decoding followed by package encoding must reproduce the exact received segment.
+and serializes it with:
+
+```php
+json_encode(
+    $payload,
+    JSON_UNESCAPED_SLASHES
+    | JSON_UNESCAPED_UNICODE
+    | JSON_THROW_ON_ERROR,
+)
+```
+
+The resulting JSON bytes are encoded as canonical unpadded Base64URL to form `payloadSegment`.
+
+Example canonical payload:
+
+```json
+{"aud":"admin-auth","t":"/orders/15?tab=payment","exp":1790000000}
+```
+
+The signature input is the exact received or issued ASCII bytes:
+
+```text
+rt1.{kidSegment}.{payloadSegment}
+```
+
+The signature is raw `HMAC-SHA256` output using the 32-byte HKDF-derived signing key.
+
+The raw HMAC-SHA256 output is exactly 32 bytes and is encoded as canonical unpadded Base64URL to form `signatureSegment`.
+
+Canonical issuance must not return a token unless all canonical token, payload, key-ID, and token-size invariants defined by this decision are satisfied.
+
+### 25. Canonical Base64URL and Payload Verification Contract
+
+Canonical Base64URL uses the RFC 4648 URL-safe alphabet without `=` padding.
+
+For `kidSegment`, `payloadSegment`, and `signatureSegment`, verification rejects:
+
+- an empty required segment;
+- characters outside the canonical Base64URL alphabet;
+- padding;
+- invalid decoding; or
+- a representation where decoding and package-owned canonical re-encoding do not reproduce the exact received segment.
+
+The decoded `signatureSegment` must be exactly 32 bytes. Any other decoded signature length causes `verify()` to return `null`.
+
+Canonical verification must authenticate the literal received token representation before accepting payload semantics.
+
+The verification order is:
+
+```text
+token-size check
+→ exact four-segment framing
+→ canonical Base64URL validation
+→ decode kidSegment
+→ decode payloadSegment as opaque bytes
+→ decode signatureSegment
+→ require decoded signature length = 32 bytes
+→ strict single-active-key invariant validation
+→ key resolution
+→ HKDF
+→ HMAC-SHA256 over exact received rt1.{kidSegment}.{payloadSegment}
+→ hash_equals()
+→ JSON payload decoding
+→ canonical JSON/type validation
+→ audience validation
+→ expiry validation
+→ internal VerifiedTokenPayloadDTO
+```
+
+Signature mismatch returns `null`.
+
+Only after signature verification succeeds may the decoded payload bytes be interpreted as JSON.
+
+Payload JSON decoding uses:
+
+```php
+json_decode(
+    $payloadBytes,
+    true,
+    512,
+    JSON_THROW_ON_ERROR,
+)
+```
+
+A JSON decoding failure is normal malformed-token rejection and returns `null`.
+
+The decoded payload must be an associative array containing exactly three members:
+
+```text
+aud
+t
+exp
+```
+
+with exact PHP types:
+
+```text
+aud = string
+t = string
+exp = int
+```
+
+No scalar coercion is permitted.
+
+Missing members, extra members, wrong member types, or a non-array JSON root cause `verify()` to return `null`.
+
+After successful decoding and type validation, verification reconstructs the payload array in exact canonical order:
+
+```text
+aud
+t
+exp
+```
+
+and re-encodes it using the exact canonical issuance call:
+
+```php
+json_encode(
+    $payload,
+    JSON_UNESCAPED_SLASHES
+    | JSON_UNESCAPED_UNICODE
+    | JSON_THROW_ON_ERROR,
+)
+```
+
+The re-encoded JSON bytes must be byte-for-byte identical to the originally decoded `payloadSegment` bytes.
+
+If they differ, `verify()` returns `null`.
+
+This canonical round-trip requirement rejects alternate wire representations including:
+
+- duplicate object members;
+- different member ordering;
+- insignificant whitespace;
+- alternate string escaping;
+- alternate Unicode escaping;
+- numeric or scalar representations that do not reproduce the canonical issued bytes.
+
+The canonical verifier therefore accepts only the single wire representation produced by canonical issuance for the same semantic payload.
 
 ### 26. Token Size
 
@@ -721,21 +870,41 @@ The canonical package implementation does not own HTTP, PSR-7, framework integra
 
 ### 33. Source Topology
 
-This proposal does not change `DEC-002`. If activated, the package remains `Source Topology: Single Capability`. Future responsibilities such as the following may be materialized only when supported by real Runtime responsibilities:
+This proposal does not change `DEC-002`. If activated, the package remains `Source Topology: Single Capability`.
+
+Future responsibilities may be materialized only when supported by real Runtime responsibilities:
 
 ```text
 src/
+├── Adapter/
 ├── Config/
 ├── DTO/
 ├── Exception/
 ├── Service/
-├── Token/
 └── Validation/
 ```
 
-`Token/` is the internal responsibility owning `HmacReturnTargetTokenCodec`. Interfaces will be placed in the responsibility that owns them according to the Package Building Standard, rather than in a root generic `Contract/` directory by default. This Work Unit creates no source files.
+The package-internal final `HmacReturnTargetTokenCodec` belongs to:
 
-The internal `VerifiedTokenPayloadDTO` belongs to the same `Token/` responsibility and does not expand the Public DTO contract.
+```text
+src/Adapter/HmacReturnTargetTokenCodec.php
+```
+
+The package-internal `VerifiedTokenPayloadDTO` belongs to:
+
+```text
+src/DTO/VerifiedTokenPayloadDTO.php
+```
+
+`HmacReturnTargetTokenCodec` remains internal, final, non-public, non-replaceable, and has no interface.
+
+`VerifiedTokenPayloadDTO` remains internal and does not expand the Public DTO contract.
+
+Interfaces are placed with the responsibility they describe when a more specific responsibility owns them. No root generic `Contract/` directory is created by default.
+
+This Work Unit creates no source files.
+
+The internal `VerifiedTokenPayloadDTO` belongs to the `DTO/` responsibility and does not expand the Public DTO contract.
 
 ### 34. Alternatives Considered
 
@@ -783,9 +952,9 @@ The canonical path also owns its `StrictSingleActiveKeyPolicy`, `KeyRotationServ
 
 The shared method name `accepts()` is intentionally broader than a generic safety predicate because the result includes both package safety and current implementation policy. `ReturnTargetRestrictionPolicyInterface` is intentionally narrow and receives one validated inspection representation exactly once. `ReturnTargetConfig` is configuration rather than a result DTO, while `VerifiedReturnTargetDTO` remains a true result snapshot. `HmacReturnTargetService` names the canonical mechanism precisely without assigning a security rating to alternative conforming implementations.
 
-The canonical service is final because the supported customization boundary is substitution through `ReturnTargetServiceInterface`, not inheritance from the canonical implementation. Token and crypto exception handling belongs to the internal `Token/` responsibility so the public Service remains orchestration-only under the Package Building Standard.
+The canonical service is final because the supported customization boundary is substitution through `ReturnTargetServiceInterface`, not inheritance from the canonical implementation. Token and crypto exception handling belongs to the internal `Adapter/` responsibility so the public Service remains orchestration-only under the Package Building Standard.
 
-Verification validates the selected key-rotation invariant before key resolution, and unknown-key rejection is distinguished from provider failure through the preserved exception cause rather than the outer `KeyNotFoundException` type alone. Canonical issuance also guarantees that every returned token satisfies the canonical non-empty key-ID and token-size constraints.
+Canonical issuance also guarantees that every returned token satisfies the canonical non-empty key-ID and token-size constraints.
 
 Unknown-key classification relies only on the public `KeyProviderInterface` contract and not on dependency-private exception-chain structure. The canonical Runtime declares every PHP extension it directly uses. Internal token verification produces an internal token result, while the Public `VerifiedReturnTargetDTO` is created only after the recovered target passes the current generic and Host-specific acceptance gates.
 
@@ -799,11 +968,16 @@ Unknown-key classification relies only on the public `KeyProviderInterface` cont
 - Full behavioral customization occurs by replacing `ReturnTargetServiceInterface`, not by injecting strategies into `HmacReturnTargetService`.
 - `ReturnTargetConfig` is a configuration contract, while `VerifiedReturnTargetDTO` is a result DTO.
 - `HmacReturnTargetService` is final; canonical customization is not performed through inheritance.
-- `HmacReturnTargetTokenCodec` is an internal final non-Service responsibility and is not a Host extension point.
+- `HmacReturnTargetTokenCodec` is an internal final non-Service responsibility under `Adapter/` and is not a Host extension point.
+- `VerifiedTokenPayloadDTO` is an internal DTO under `DTO/` and does not expand the Public DTO contract.
 - Canonical verification validates the strict single-active-key invariant before key resolution.
 - Provider/infrastructure failures are not silently converted into unknown-token rejection.
 - Canonical issuance never returns an empty-`kid` or over-4096-byte token.
 - Package exception hierarchy and stable error-code behavior are fixed before Runtime implementation.
+- The canonical `rt1` payload has one deterministic JSON wire representation with exact member order and strict scalar types.
+- Canonical verification authenticates the literal received payload representation before JSON semantic processing and rejects non-canonical JSON representations.
+- The decoded HMAC-SHA256 signature must be exactly 32 bytes.
+- `HmacReturnTargetTokenCodec` is placed under the canonical internal `Adapter/` responsibility, while `VerifiedTokenPayloadDTO` is placed under `DTO/`.
 - Unknown-key classification does not depend on the internal nested-exception shape of `maatify/crypto`.
 - Canonical Runtime requirements include both `ext-hash` and `ext-json`.
 - Internal token verification returns `VerifiedTokenPayloadDTO`; only the public Service creates `VerifiedReturnTargetDTO` after final target acceptance.
