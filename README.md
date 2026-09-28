@@ -7,6 +7,7 @@
 [![Status](https://img.shields.io/badge/Status-Development-blue)](README.md)
 [![PHP](https://img.shields.io/badge/PHP-8.4-8892BF)](composer.json)
 [![License](https://img.shields.io/badge/License-Proprietary-green)](LICENSE)
+[![PHPStan](https://img.shields.io/badge/PHPStan-max-blue)](phpstan.neon)
 
 [![Maatify Ecosystem](https://img.shields.io/badge/Maatify-Ecosystem-blueviolet)](https://github.com/Maatify)
 
@@ -23,7 +24,7 @@ A development-stage Composer package for return-target handling. Runtime impleme
 
 **Development / Unpublished**
 
-The package identity and initial Composer metadata are established. Runtime implementation has started with configuration and exception foundations plus the canonical internal `rt1` token/crypto codec. The public service, target validation, restriction policy, and Clock flow are not implemented yet.
+The package identity and initial Composer metadata are established. The canonical public Runtime slice is implemented, while consumer verification, CI, examples, and release readiness remain outstanding.
 
 ## Requirements
 
@@ -32,10 +33,24 @@ The package identity and initial Composer metadata are established. Runtime impl
 - `ext-json`
 - `maatify/crypto` `^1.0`
 - `maatify/exceptions` `^1.0`
+- `maatify/shared-common` `^1.0`
 
 ## Installation
 
 No installation command is available because there is no externally published/resolvable package version.
+
+## Public Runtime API
+
+See [RETURN_TARGET_PACKAGE_REFERENCE.md](RETURN_TARGET_PACKAGE_REFERENCE.md) for the complete canonical Public Runtime Contract.
+
+- `ReturnTargetServiceInterface` — public substitution boundary for `accepts()`, `issue()`, and `verify()`.
+- `HmacReturnTargetService` — canonical implementation using `ReturnTargetConfig`, a crypto `KeyProviderInterface`, `ClockInterface`, and an optional restrict-only policy.
+- `ReturnTargetRestrictionPolicyInterface` — optional Host-owned policy receiving the validated single-decoded inspection target.
+- `ReturnTargetConfig` — validated audience and TTL configuration.
+- `VerifiedReturnTargetDTO` — exact public result shape: `target` and `expiresAt`.
+- `ReturnTargetExceptionInterface`, `InvalidReturnTargetConfigurationException`, and `ReturnTargetCryptoConfigurationException` — package exception contracts.
+
+`accepts()` and `issue()` reject unsafe targets normally. `issue()` preserves the exact original target in the signed token. `verify()` uses the shared Clock, rejects at `now >= expiresAt`, re-applies canonical validation and the current restriction policy, and returns the exact original target on success. The package does not execute redirects.
 
 ## Implemented Runtime Foundation
 
@@ -46,7 +61,7 @@ No installation command is available because there is no externally published/re
 
 `FILE-05` is closed by the real source implementation and a PHPStan maximum-level configuration covering `src/` and `tests/`.
 
-The canonical internal `rt1` token and crypto codec is implemented. The public `HmacReturnTargetService` is not implemented yet. Target validation, restriction policy, and Clock flow are not implemented yet. The package does not claim completion of the `DEC-003` Runtime.
+The canonical internal `rt1` token and crypto codec is implemented and composed by the public service. `CanonicalReturnTargetValidator` is package-internal and performs one percent-decoding pass for security inspection only. The internal codec and `VerifiedTokenPayloadDTO` remain non-public and are not Host extension points.
 
 The internal codec is not a Public API and is not Host-replaceable.
 

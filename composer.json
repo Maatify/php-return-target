@@ -1,6 +1,6 @@
 {
     "name": "maatify/php-return-target",
-    "description": "PHP library package foundation for return-target handling.",
+    "description": "PHP library for stateless signed internal return-target handling.",
     "keywords": [
         "return-target",
         "php",
@@ -35,6 +35,7 @@
         "ext-json": "*",
         "maatify/crypto": "^1.0",
         "maatify/exceptions": "^1.0",
+        "maatify/shared-common": "^1.0",
         "php": "^8.4"
     },
     "require-dev": {
