@@ -224,6 +224,10 @@ A package-internal final `HmacReturnTargetTokenCodec` owns canonical token and c
 
 `HmacReturnTargetTokenCodec` is not a Public API, has no package interface, is not Host-replaceable, and is not a strategy extension point.
 
+Successful codec verification returns an internal `VerifiedTokenPayloadDTO`, not the Public `VerifiedReturnTargetDTO`.
+
+`VerifiedTokenPayloadDTO` represents only successful canonical token, signature, audience, and expiry verification. It does not claim that the recovered target has passed the current generic target validator or Host restriction policy.
+
 Generic target validation and decoded security inspection remain package-owned validation responsibilities. Host customization remains limited to `ReturnTargetRestrictionPolicyInterface` or complete replacement of `ReturnTargetServiceInterface`.
 
 ### 11. Canonical Crypto Integration
@@ -269,12 +273,13 @@ Canonical verification performs:
 ```text
 parse canonical token
 → StrictSingleActiveKeyPolicy::validate(KeyProviderInterface)
-→ decryptionKey(kid)
+→ KeyProviderInterface::find(kid) existence probe
+→ KeyRotationService::decryptionKey(kid)
 → HKDF with context return-target:token:v1
 → HMAC verification
 → audience verification
 → expiry verification
-→ VerifiedReturnTargetDTO
+→ internal VerifiedTokenPayloadDTO
 ```
 
 Verification must validate the `StrictSingleActiveKeyPolicy` invariant before resolving the verification key. Zero or multiple ACTIVE keys are configuration failures and must not be treated as token rejection.
@@ -283,27 +288,42 @@ The Host cannot inject another `KeyRotationPolicyInterface` into the canonical p
 
 #### Canonical Key-Resolution Failure Classification
 
-`maatify/crypto v1.0.0` may expose provider failures through `KeyNotFoundException` because `StrictSingleActiveKeyPolicy::decryptionKey()` preserves the provider throwable as `previous`.
+Canonical unknown-key classification uses only the documented `KeyProviderInterface` contract and does not inspect the internal `previous` chain produced by `maatify/crypto`.
 
-The canonical verifier therefore applies this exact classification:
+Verification performs a direct `KeyProviderInterface::find(kid)` existence probe after the strict single-active-key invariant has been validated.
 
-- `DecryptionKeyNotAllowedException` → normal token rejection → `null`.
-- `KeyNotFoundException` whose direct `previous` is a `KeyNotFoundException` and that preserved provider exception has no further `previous` → provider-declared unknown key → normal token rejection → `null`.
-- `KeyNotFoundException` with any other non-null preserved cause → rethrow that preserved cause unchanged.
-- an otherwise unclassified `KeyNotFoundException` → `ReturnTargetCryptoConfigurationException`, preserving the `KeyNotFoundException` as `previous`.
-- `NoActiveKeyException` or `MultipleActiveKeysException` → `ReturnTargetCryptoConfigurationException`, preserving the original exception as `previous`.
-- HKDF configuration/material exceptions → `ReturnTargetCryptoConfigurationException`, preserving the original exception as `previous`.
+The exact classification is:
+
+- direct `KeyProviderInterface::find(kid)` throwing `KeyNotFoundException` → normal unknown-key token rejection → `null`;
+- any other throwable from the direct provider lookup → propagate unchanged;
+- after the direct lookup succeeds, `KeyRotationService::decryptionKey(kid)` throwing `DecryptionKeyNotAllowedException` → normal token rejection → `null`;
+- after the direct lookup succeeds, `KeyRotationService::decryptionKey(kid)` throwing `KeyNotFoundException` → `ReturnTargetCryptoConfigurationException`, preserving that exception as `previous`, because the key existed during the immediately preceding public provider lookup and the canonical key-resolution state is no longer internally consistent;
+- `NoActiveKeyException` or `MultipleActiveKeysException` → `ReturnTargetCryptoConfigurationException`, preserving the original exception as `previous`;
+- HKDF configuration or key-material exceptions → `ReturnTargetCryptoConfigurationException`, preserving the original exception as `previous`;
 - unknown external throwables are not blanket-wrapped and propagate unchanged.
 
-The same distinction applies during issuance: failure to resolve a valid active canonical key is exceptional and never becomes normal target rejection.
+The outer exception-cause shape created internally by `maatify/crypto` is not part of the Return Target contract and is never inspected for behavioral classification.
+
+During issuance, failure to resolve a valid active canonical key remains exceptional and never becomes normal target rejection.
 
 ### 12. HMAC Ownership
 
 Because `maatify/crypto v1.0.0` does not expose a stable generic signing/HMAC Public API, the canonical implementation owns protocol-specific `HMAC-SHA256` signing and uses `hash_equals()` for verification. It must not create a generic local crypto or signing subsystem.
 
-### 13. Direct Runtime Extension
+### 13. Direct Runtime Extensions
 
-Because the canonical Runtime uses `hash_hmac(...)` directly, a future activation and implementation must declare `ext-hash: *` as a direct Runtime requirement. This proposal does not modify `composer.json`.
+The canonical Runtime directly uses the Hash extension for HMAC operations and the JSON extension for canonical token payload serialization/deserialization and the `JsonSerializable` result contract.
+
+If this decision becomes `ACTIVE` and Runtime implementation begins, the package must declare:
+
+```text
+ext-hash *
+ext-json *
+```
+
+as direct Runtime requirements.
+
+This proposal does not modify `composer.json`.
 
 ### 14. Clock
 
@@ -482,10 +502,47 @@ The internal token codec conceptually owns:
 ```php
 issue(string $target, int $expiresAt): string
 
-verify(string $token, int $nowTimestamp): ?VerifiedReturnTargetDTO
+verify(string $token, int $nowTimestamp): ?VerifiedTokenPayloadDTO
 ```
 
-The codec is not part of the Public API and has no interface.
+The internal token-verification result is:
+
+```php
+/** @internal */
+final readonly class VerifiedTokenPayloadDTO implements \JsonSerializable
+{
+    public function __construct(
+        public string $target,
+        public int $expiresAt,
+    ) {
+    }
+
+    public function jsonSerialize(): mixed
+    {
+        return [
+            'target' => $this->target,
+            'expiresAt' => $this->expiresAt,
+        ];
+    }
+}
+```
+
+`VerifiedTokenPayloadDTO` is package-internal and is not part of the Public API.
+
+For public `verify()`:
+
+```text
+HmacReturnTargetTokenCodec verification
+→ VerifiedTokenPayloadDTO
+→ canonical generic target validation
+→ single decoded security inspection
+→ optional ReturnTargetRestrictionPolicyInterface
+→ VerifiedReturnTargetDTO
+```
+
+`HmacReturnTargetService` constructs the Public `VerifiedReturnTargetDTO` only after every current target-acceptance gate has passed.
+
+The codec has no public interface and is not a Host extension point.
 
 `HmacReturnTargetService` performs orchestration only and does not catch dependency exceptions. Dependency-exception classification defined by this decision belongs to `HmacReturnTargetTokenCodec`.
 
@@ -650,6 +707,7 @@ If this decision becomes `ACTIVE` and the canonical implementation is built, the
 ```text
 php ^8.4
 ext-hash *
+ext-json *
 maatify/crypto ^1.0
 maatify/exceptions ^1.0
 maatify/shared-common ^1.0
@@ -676,6 +734,8 @@ src/
 ```
 
 `Token/` is the internal responsibility owning `HmacReturnTargetTokenCodec`. Interfaces will be placed in the responsibility that owns them according to the Package Building Standard, rather than in a root generic `Contract/` directory by default. This Work Unit creates no source files.
+
+The internal `VerifiedTokenPayloadDTO` belongs to the same `Token/` responsibility and does not expand the Public DTO contract.
 
 ### 34. Alternatives Considered
 
@@ -727,6 +787,8 @@ The canonical service is final because the supported customization boundary is s
 
 Verification validates the selected key-rotation invariant before key resolution, and unknown-key rejection is distinguished from provider failure through the preserved exception cause rather than the outer `KeyNotFoundException` type alone. Canonical issuance also guarantees that every returned token satisfies the canonical non-empty key-ID and token-size constraints.
 
+Unknown-key classification relies only on the public `KeyProviderInterface` contract and not on dependency-private exception-chain structure. The canonical Runtime declares every PHP extension it directly uses. Internal token verification produces an internal token result, while the Public `VerifiedReturnTargetDTO` is created only after the recovered target passes the current generic and Host-specific acceptance gates.
+
 ### 35. Consequences
 
 - The package has a recommended canonical implementation with fixed security semantics.
@@ -742,6 +804,9 @@ Verification validates the selected key-rotation invariant before key resolution
 - Provider/infrastructure failures are not silently converted into unknown-token rejection.
 - Canonical issuance never returns an empty-`kid` or over-4096-byte token.
 - Package exception hierarchy and stable error-code behavior are fixed before Runtime implementation.
+- Unknown-key classification does not depend on the internal nested-exception shape of `maatify/crypto`.
+- Canonical Runtime requirements include both `ext-hash` and `ext-json`.
+- Internal token verification returns `VerifiedTokenPayloadDTO`; only the public Service creates `VerifiedReturnTargetDTO` after final target acceptance.
 - The package does not become a strategy or plugin framework.
 - Host-specific restrictions are possible through a restrict-only policy.
 - Hosts with materially different requirements can replace the service implementation entirely.
