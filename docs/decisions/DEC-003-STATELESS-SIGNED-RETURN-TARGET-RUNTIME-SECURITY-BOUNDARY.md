@@ -117,6 +117,8 @@ This distinction is an ownership boundary, not a security rating of Host-supplie
 
 `HmacReturnTargetService` does not expose pluggable strategies for changing its canonical protocol or cryptographic behavior.
 
+`HmacReturnTargetService` is a `final` concrete class. The canonical implementation is not an inheritance extension point. A Host that requires different service behavior implements `ReturnTargetServiceInterface` separately.
+
 The canonical implementation does not introduce contracts such as:
 
 ```text
@@ -202,38 +204,39 @@ The package does not know Host route names.
 
 ### 10. Canonical Package Ownership
 
-`HmacReturnTargetService` owns:
+The canonical HMAC path is composed of two package-owned responsibilities.
 
-- canonical generic internal-target validation;
-- token protocol and version;
+`HmacReturnTargetService` is the final public orchestration service. It owns the public workflow across target acceptance, clock use, optional Host restriction, token issuance, token verification, and final result acceptance. It does not catch dependency exceptions.
+
+A package-internal final `HmacReturnTargetTokenCodec` owns canonical token and crypto mechanics:
+
+- `rt1` framing and parsing;
 - token serialization;
-- HMAC signing;
-- signature verification;
-- expiry enforcement;
-- audience binding;
-- `kid` transport semantics;
-- canonical configuration validation;
-- Base64URL canonicalization;
-- resource and input bounds;
-- canonical key-rotation policy composition;
-- HKDF composition;
-- decoded security inspection;
-- Host restriction-policy invocation semantics; and
-- revalidation after token verification.
+- Base64URL encoding and canonical decoding checks;
+- HMAC-SHA256 signing and verification;
+- HKDF key derivation;
+- `StrictSingleActiveKeyPolicy` and `KeyRotationService` composition;
+- key-resolution failure classification;
+- canonical audience verification;
+- canonical expiry verification;
+- canonical token-size enforcement; and
+- conversion of the explicitly classified dependency failures defined by this decision.
+
+`HmacReturnTargetTokenCodec` is not a Public API, has no package interface, is not Host-replaceable, and is not a strategy extension point.
+
+Generic target validation and decoded security inspection remain package-owned validation responsibilities. Host customization remains limited to `ReturnTargetRestrictionPolicyInterface` or complete replacement of `ReturnTargetServiceInterface`.
 
 ### 11. Canonical Crypto Integration
 
 `HmacReturnTargetService` depends at Runtime on `maatify/crypto ^1.0`.
 
-The Host supplies:
+The Host supplies only:
 
 ```text
 Maatify\Crypto\KeyRotation\KeyProviderInterface
 ```
 
-The Host owns the source and loading of key material.
-
-The canonical implementation itself owns the composition of:
+The canonical internal token codec owns:
 
 ```text
 Maatify\Crypto\KeyRotation\Policy\StrictSingleActiveKeyPolicy
@@ -242,34 +245,57 @@ Maatify\Crypto\HKDF\HKDFService
 Maatify\Crypto\HKDF\HKDFContext
 ```
 
-The Host does not inject a custom `KeyRotationPolicyInterface` into the canonical path.
+The exact HKDF context is:
+
+```text
+return-target:token:v1
+```
+
+The derived signing-key length is exactly 32 bytes.
 
 Canonical issuance performs:
 
 ```text
-KeyProviderInterface
-→ KeyRotationService configured with StrictSingleActiveKeyPolicy
+StrictSingleActiveKeyPolicy::validate(KeyProviderInterface)
 → activeEncryptionKey()
-→ active key ID + root key material
 → HKDF with context return-target:token:v1
-→ 32-byte derived signing key
 → HMAC-SHA256
+→ canonical token
+→ canonical token-size check
 ```
 
 Canonical verification performs:
 
 ```text
-token kid
-→ KeyRotationService configured with StrictSingleActiveKeyPolicy
+parse canonical token
+→ StrictSingleActiveKeyPolicy::validate(KeyProviderInterface)
 → decryptionKey(kid)
 → HKDF with context return-target:token:v1
-→ 32-byte derived signing key
 → HMAC verification
+→ audience verification
+→ expiry verification
+→ VerifiedReturnTargetDTO
 ```
 
-Minimum root-key requirements and the semantics implemented by `StrictSingleActiveKeyPolicy` remain owned by `maatify/crypto`.
+Verification must validate the `StrictSingleActiveKeyPolicy` invariant before resolving the verification key. Zero or multiple ACTIVE keys are configuration failures and must not be treated as token rejection.
 
-A Host requiring different key-lifecycle or rotation semantics must use its own `ReturnTargetServiceInterface` implementation rather than altering the canonical implementation.
+The Host cannot inject another `KeyRotationPolicyInterface` into the canonical path. A Host requiring different key-lifecycle behavior uses another `ReturnTargetServiceInterface` implementation.
+
+#### Canonical Key-Resolution Failure Classification
+
+`maatify/crypto v1.0.0` may expose provider failures through `KeyNotFoundException` because `StrictSingleActiveKeyPolicy::decryptionKey()` preserves the provider throwable as `previous`.
+
+The canonical verifier therefore applies this exact classification:
+
+- `DecryptionKeyNotAllowedException` → normal token rejection → `null`.
+- `KeyNotFoundException` whose direct `previous` is a `KeyNotFoundException` and that preserved provider exception has no further `previous` → provider-declared unknown key → normal token rejection → `null`.
+- `KeyNotFoundException` with any other non-null preserved cause → rethrow that preserved cause unchanged.
+- an otherwise unclassified `KeyNotFoundException` → `ReturnTargetCryptoConfigurationException`, preserving the `KeyNotFoundException` as `previous`.
+- `NoActiveKeyException` or `MultipleActiveKeysException` → `ReturnTargetCryptoConfigurationException`, preserving the original exception as `previous`.
+- HKDF configuration/material exceptions → `ReturnTargetCryptoConfigurationException`, preserving the original exception as `previous`.
+- unknown external throwables are not blanket-wrapped and propagate unchanged.
+
+The same distinction applies during issuance: failure to resolve a valid active canonical key is exceptional and never becomes normal target rejection.
 
 ### 12. HMAC Ownership
 
@@ -285,7 +311,7 @@ The canonical implementation will depend on `maatify/shared-common ^1.0` and con
 
 ### 15. Exceptions
 
-Package-owned exceptions will expose:
+The package exposes:
 
 ```php
 interface ReturnTargetExceptionInterface extends \Throwable
@@ -293,11 +319,37 @@ interface ReturnTargetExceptionInterface extends \Throwable
 }
 ```
 
-The proposed package-owned hierarchy includes `InvalidReturnTargetConfigurationException` using the appropriate Validation hierarchy from `maatify/exceptions`, and `ReturnTargetCryptoConfigurationException` using the appropriate System hierarchy.
+Invalid canonical package configuration uses:
 
-The following are normal failure returns, not exceptions: unsafe targets, Host-policy rejection, malformed tokens, unsupported versions, malformed or non-canonical Base64URL, malformed payloads, signature mismatch, wrong audience, expired tokens, unknown `kid`, rejected verification keys, and invalid targets recovered from payloads.
+```php
+final class InvalidReturnTargetConfigurationException
+    extends \Maatify\Exceptions\Exception\Validation\InvalidArgumentMaatifyException
+    implements ReturnTargetExceptionInterface
+{
+}
+```
 
-Invalid audience or TTL configuration, missing or invalid active crypto keys, broken key-rotation invariants, invalid root-key material, and HKDF configuration/material failures are exceptional configuration or runtime-setup failures. When converting a known crypto failure, the original exception must be preserved as `previous`; blanket `catch (\Throwable)` wrapping is forbidden, and unknown external throwables must not be swallowed.
+This preserves the stable `INVALID_ARGUMENT` error-code behavior owned by `maatify/exceptions`.
+
+Canonical crypto/key-configuration failures use:
+
+```php
+final class ReturnTargetCryptoConfigurationException
+    extends \Maatify\Exceptions\Exception\System\SystemMaatifyException
+    implements ReturnTargetExceptionInterface
+{
+    protected function defaultErrorCode(): \Maatify\Exceptions\Contracts\ErrorCodeInterface
+    {
+        return \Maatify\Exceptions\Enum\ErrorCodeEnum::MAATIFY_ERROR;
+    }
+}
+```
+
+Normal untrusted-input failures remain non-exceptional and return `false` or `null` according to the public method contract.
+
+Only the dependency failures explicitly classified by this decision are converted to package exceptions. When conversion occurs, the original throwable is preserved as `previous`.
+
+Unknown external or infrastructure throwables are not blanket-wrapped and are not swallowed.
 
 ### 16. Proposed Public Service Contract
 
@@ -367,6 +419,16 @@ final readonly class ReturnTargetConfig
 
 `ReturnTargetConfig` is configuration, not a DTO.
 
+`ReturnTargetConfig` validates its own constructor contract.
+
+Construction throws `InvalidReturnTargetConfigurationException` when:
+
+- `audience` length is outside `1..64` bytes;
+- `audience` contains characters outside `[A-Za-z0-9._-]`; or
+- `ttlSeconds` is outside `1..3600`.
+
+A successfully constructed `ReturnTargetConfig` is therefore valid canonical configuration and does not require service-level exception handling for these invariants.
+
 Its future canonical placement is:
 
 ```text
@@ -396,7 +458,13 @@ A Host-supplied `ReturnTargetServiceInterface` implementation is not required to
 
 ### 19. Canonical Service Boundary
 
-The proposed public construction boundary for the canonical implementation is:
+The canonical public implementation is:
+
+```php
+final class HmacReturnTargetService implements ReturnTargetServiceInterface
+```
+
+Its public construction boundary is:
 
 ```php
 HmacReturnTargetService(
@@ -407,17 +475,19 @@ HmacReturnTargetService(
 )
 ```
 
-The canonical implementation internally owns:
+The service internally composes the package-owned validator and the package-internal final `HmacReturnTargetTokenCodec`.
 
-```text
-StrictSingleActiveKeyPolicy
-KeyRotationService
-HKDFService
+The internal token codec conceptually owns:
+
+```php
+issue(string $target, int $expiresAt): string
+
+verify(string $token, int $nowTimestamp): ?VerifiedReturnTargetDTO
 ```
 
-The Host supplies key material only through `KeyProviderInterface`.
+The codec is not part of the Public API and has no interface.
 
-No Runtime class is implemented by this proposal.
+`HmacReturnTargetService` performs orchestration only and does not catch dependency exceptions. Dependency-exception classification defined by this decision belongs to `HmacReturnTargetTokenCodec`.
 
 ### 20. Public Failure Semantics
 
@@ -509,7 +579,7 @@ rt1.{kidSegment}.{payloadSegment}.{signatureSegment}
 
 There are exactly four non-empty dot-separated segments.
 
-The version is `rt1`; any other version causes `verify()` to return `null`. `kidSegment` is the exact Crypto key ID encoded as unpadded Base64URL. `payloadSegment` is unpadded Base64URL for a JSON payload with exactly these keys and no extras:
+The version is `rt1`; any other version causes `verify()` to return `null`. `kidSegment` is the exact Crypto key ID encoded as unpadded Base64URL. Canonical issuance requires the active Crypto key ID to be non-empty before Base64URL encoding. An empty active key ID is a canonical crypto-configuration failure and throws `ReturnTargetCryptoConfigurationException`; issuance must not produce a token with an empty `kidSegment`. `payloadSegment` is unpadded Base64URL for a JSON payload with exactly these keys and no extras:
 
 ```json
 {
@@ -527,7 +597,13 @@ The canonical implementation uses the RFC 4648 URL-safe alphabet without `=` pad
 
 ### 26. Token Size
 
-The maximum canonical token input is 4096 bytes. A larger input causes `verify()` to return `null`.
+The canonical token-size limit is 4096 bytes.
+
+`verify()` returns `null` immediately for an input token larger than 4096 bytes.
+
+Canonical issuance must also enforce the same bound on the fully serialized token before returning it. A generated canonical token larger than 4096 bytes is a canonical crypto/configuration failure and throws `ReturnTargetCryptoConfigurationException`.
+
+`HmacReturnTargetService` therefore never returns a canonical token that its own verifier rejects solely because of the canonical token-size bound.
 
 ### 27. Audience Contract
 
@@ -539,7 +615,9 @@ Audience is mandatory and has length 1–64 bytes. Allowed characters are `A-Z`,
 
 ### 29. Canonical Key Rotation Semantics
 
-`HmacReturnTargetService` composes `KeyRotationService` internally using `StrictSingleActiveKeyPolicy` and the Host-supplied `KeyProviderInterface`.
+`HmacReturnTargetTokenCodec` composes `KeyRotationService` internally using `StrictSingleActiveKeyPolicy` and the Host-supplied `KeyProviderInterface`.
+
+Both issuance and verification validate the `StrictSingleActiveKeyPolicy` invariant before resolving a key.
 
 New canonical tokens use:
 
@@ -557,9 +635,7 @@ The canonical implementation does not accept a Host-supplied `KeyRotationPolicyI
 
 The active, inactive, retired, encryption, and decryption semantics enforced by `StrictSingleActiveKeyPolicy` remain owned by `maatify/crypto`.
 
-An unknown or non-verifiable key referenced by untrusted token input is a normal verification rejection and returns `null`.
-
-A broken Host key provider or invalid canonical crypto configuration remains exceptional.
+Unknown-key versus provider/infrastructure failure is classified only by the exact causal rules in `Canonical Key-Resolution Failure Classification`; the outer `KeyNotFoundException` type alone is never sufficient to convert a failure to `null`.
 
 A Host requiring different rotation semantics must use a Host-supplied `ReturnTargetServiceInterface` implementation.
 
@@ -587,7 +663,19 @@ The canonical package implementation does not own HTTP, PSR-7, framework integra
 
 ### 33. Source Topology
 
-This proposal does not change `DEC-002`. If activated, the package remains `Source Topology: Single Capability`. Future responsibilities such as `Config/`, `DTO/`, `Exception/`, `Service/`, and `Validation/` may be materialized only when supported by real Runtime responsibilities. Interfaces will be placed in the responsibility that owns them according to the Package Building Standard, rather than in a root generic `Contract/` directory by default. This Work Unit creates no source files.
+This proposal does not change `DEC-002`. If activated, the package remains `Source Topology: Single Capability`. Future responsibilities such as the following may be materialized only when supported by real Runtime responsibilities:
+
+```text
+src/
+├── Config/
+├── DTO/
+├── Exception/
+├── Service/
+├── Token/
+└── Validation/
+```
+
+`Token/` is the internal responsibility owning `HmacReturnTargetTokenCodec`. Interfaces will be placed in the responsibility that owns them according to the Package Building Standard, rather than in a root generic `Contract/` directory by default. This Work Unit creates no source files.
 
 ### 34. Alternatives Considered
 
@@ -635,6 +723,10 @@ The canonical path also owns its `StrictSingleActiveKeyPolicy`, `KeyRotationServ
 
 The shared method name `accepts()` is intentionally broader than a generic safety predicate because the result includes both package safety and current implementation policy. `ReturnTargetRestrictionPolicyInterface` is intentionally narrow and receives one validated inspection representation exactly once. `ReturnTargetConfig` is configuration rather than a result DTO, while `VerifiedReturnTargetDTO` remains a true result snapshot. `HmacReturnTargetService` names the canonical mechanism precisely without assigning a security rating to alternative conforming implementations.
 
+The canonical service is final because the supported customization boundary is substitution through `ReturnTargetServiceInterface`, not inheritance from the canonical implementation. Token and crypto exception handling belongs to the internal `Token/` responsibility so the public Service remains orchestration-only under the Package Building Standard.
+
+Verification validates the selected key-rotation invariant before key resolution, and unknown-key rejection is distinguished from provider failure through the preserved exception cause rather than the outer `KeyNotFoundException` type alone. Canonical issuance also guarantees that every returned token satisfies the canonical non-empty key-ID and token-size constraints.
+
 ### 35. Consequences
 
 - The package has a recommended canonical implementation with fixed security semantics.
@@ -644,6 +736,12 @@ The shared method name `accepts()` is intentionally broader than a generic safet
 - Host-specific restriction is available only through the narrow `ReturnTargetRestrictionPolicyInterface`.
 - Full behavioral customization occurs by replacing `ReturnTargetServiceInterface`, not by injecting strategies into `HmacReturnTargetService`.
 - `ReturnTargetConfig` is a configuration contract, while `VerifiedReturnTargetDTO` is a result DTO.
+- `HmacReturnTargetService` is final; canonical customization is not performed through inheritance.
+- `HmacReturnTargetTokenCodec` is an internal final non-Service responsibility and is not a Host extension point.
+- Canonical verification validates the strict single-active-key invariant before key resolution.
+- Provider/infrastructure failures are not silently converted into unknown-token rejection.
+- Canonical issuance never returns an empty-`kid` or over-4096-byte token.
+- Package exception hierarchy and stable error-code behavior are fixed before Runtime implementation.
 - The package does not become a strategy or plugin framework.
 - Host-specific restrictions are possible through a restrict-only policy.
 - Hosts with materially different requirements can replace the service implementation entirely.
