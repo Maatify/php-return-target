@@ -14,8 +14,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - PHPStan maximum-level configuration covering the real `src/` and `tests/` paths; `FILE-05` is closed.
 - Canonical internal `rt1` HMAC token codec, internal `VerifiedTokenPayloadDTO`, and `ReturnTargetCryptoConfigurationException`.
 - Runtime requirements for `ext-hash`, `ext-json`, and `maatify/crypto` `^1.0`.
+- Public `ReturnTargetServiceInterface` and canonical `HmacReturnTargetService`.
+- Canonical target validation, optional restrict-only policy, `VerifiedReturnTargetDTO`, and shared `ClockInterface` expiry integration.
+- Direct Runtime dependency on `maatify/shared-common` `^1.0`.
 
-### Not Implemented Yet
+### Remaining Readiness Work
 
-- The public service, target validation, restriction policy, and Clock flow remain outside this Work Unit.
-- The package remains `Development / Unpublished`; `DEC-003` Runtime is not complete.
+- Consumer Verification Harness, CI, consumer guides/examples, and final presentation/release readiness remain incomplete.
+- The package remains `Development / Unpublished`; no release or Lead acceptance is claimed.
