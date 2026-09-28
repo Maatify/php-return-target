@@ -61,7 +61,13 @@ There are no Explicit Additional Standards, and no excluded Candidate is recorde
 
 ## Frozen Profile Version Baseline
 
-The baseline was proven by a completed `VALID` Adoption in `Maatify/php-rate-limiter` at exact commit `f9048d9d75395244fa4af26b55e6b85ff0a898c6`, which establishes `composer-package@3.0.0` and `repository-governance@3.0.0`. The Profile manifests themselves were compared, not the rest of the repository, and their contents match byte-for-byte with commit `73abc86359d9bd9b822f0aa355d06c1a16695724`. Result: no frozen-version/content mismatch; baseline verification is `VALID`.
+The frozen Profile-version baseline is evidenced by the completed `VALID` Standards Adoption in `Maatify/php-rate-limiter`, whose recorded upstream Adoption Commit is `Maatify/php-engineering-standards@f9048d9d75395244fa4af26b55e6b85ff0a898c6`.
+
+That earlier Adoption is used only to establish the frozen Profile-manifest/version baseline. The `composer-package@3.0.0` and `repository-governance@3.0.0` Profile manifests at that upstream commit are byte-for-byte identical to the corresponding Profile manifests at this repository's exact Adoption Commit `73abc86359d9bd9b822f0aa355d06c1a16695724`.
+
+Standards content may differ between those upstream commits and is not inherited from the `php-rate-limiter` Adoption. The Applicable Standards used by this repository are resolved and pinned exclusively from `Maatify/php-engineering-standards@73abc86359d9bd9b822f0aa355d06c1a16695724`.
+
+Result: no frozen Profile-version/content mismatch; baseline verification is `VALID`.
 
 ## Structural Resolution and Closure
 
