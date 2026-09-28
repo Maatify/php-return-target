@@ -23,10 +23,14 @@ This package is intended to provide framework-agnostic safe internal return-targ
 
 ## Source Topology
 
-**Source Topology: Single Capability**
+**Source Topology: Single Capability**, as recorded in the Owner-approved [DEC-002 — Single Capability Source Topology](docs/decisions/DEC-002-SINGLE-CAPABILITY-SOURCE-TOPOLOGY.md).
 
 The `src/` tree will be materialized when the first Runtime Work Unit establishes the approved source implementation. No placeholder source directory or class is part of this bootstrap.
 
 ## Composer Ownership
 
 `composer.json` is the canonical source for Composer identity, dependencies, production autoloading, configuration, stability policy, and distribution metadata. This Package Reference does not duplicate or override that manifest.
+
+## Current Composer and Discovery State
+
+The current Composer keyword set intentionally remains at the canonical minimum while the package has no implemented Runtime API. Additional discovery keywords will be evaluated only when implemented behavior provides accurate, stable terms.
