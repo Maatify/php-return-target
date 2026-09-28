@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Maatify\ReturnTarget\Tests\Unit\Config;
 
 use Maatify\Exceptions\Exception\Validation\InvalidArgumentMaatifyException;
+use Maatify\Exceptions\Enum\ErrorCodeEnum;
 use Maatify\ReturnTarget\Config\ReturnTargetConfig;
 use Maatify\ReturnTarget\Exception\InvalidReturnTargetConfigurationException;
 use Maatify\ReturnTarget\Exception\ReturnTargetExceptionInterface;
@@ -13,6 +14,15 @@ use PHPUnit\Framework\TestCase;
 
 final class ReturnTargetConfigTest extends TestCase
 {
+    public function testMaximumAudienceLengthIsAccepted(): void
+    {
+        $audience = str_repeat('a', 64);
+
+        $config = new ReturnTargetConfig($audience, 60);
+
+        self::assertSame($audience, $config->audience);
+    }
+
     public function testValidAudienceAndTtlAreAccepted(): void
     {
         $config = new ReturnTargetConfig('admin-auth_v1.2', 120);
@@ -55,5 +65,6 @@ final class ReturnTargetConfigTest extends TestCase
 
         self::assertInstanceOf(ReturnTargetExceptionInterface::class, $exception);
         self::assertInstanceOf(InvalidArgumentMaatifyException::class, $exception);
+        self::assertSame(ErrorCodeEnum::INVALID_ARGUMENT, $exception->getErrorCode());
     }
 }

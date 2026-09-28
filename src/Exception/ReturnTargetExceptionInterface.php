@@ -7,6 +7,4 @@ namespace Maatify\ReturnTarget\Exception;
 /**
  * Identifies exceptions owned by the return-target package.
  */
-interface ReturnTargetExceptionInterface extends \Throwable
-{
-}
+interface ReturnTargetExceptionInterface extends \Throwable {}
