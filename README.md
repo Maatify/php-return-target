@@ -28,6 +28,9 @@ The package identity and initial Composer metadata are established. Runtime impl
 ## Requirements
 
 - PHP `^8.4`
+- `ext-hash`
+- `ext-json`
+- `maatify/crypto` `^1.0`
 - `maatify/exceptions` `^1.0`
 
 ## Installation
@@ -42,7 +45,9 @@ No installation command is available because there is no externally published/re
 
 `FILE-05` is closed by the real source implementation and a PHPStan maximum-level configuration covering `src/` and `tests/`.
 
-The service, token, and crypto Runtime are not implemented yet. The package does not claim completion of the `DEC-003` Runtime.
+The canonical internal `rt1` token and crypto codec is implemented. The public `HmacReturnTargetService` is not implemented yet. Target validation, restriction policy, and Clock flow are not implemented yet. The package does not claim completion of the `DEC-003` Runtime.
+
+The internal codec is not a Public API and is not Host-replaceable.
 
 ## Boundary
 
