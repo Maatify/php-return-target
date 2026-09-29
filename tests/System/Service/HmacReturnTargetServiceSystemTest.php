@@ -16,6 +16,8 @@ use Maatify\ReturnTarget\Validation\ReturnTargetRestrictionPolicyInterface;
 use Maatify\SharedCommon\Contracts\ClockInterface;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
+use Throwable;
 
 final class HmacReturnTargetServiceSystemTest extends TestCase
 {
@@ -144,6 +146,60 @@ final class HmacReturnTargetServiceSystemTest extends TestCase
         self::assertSame([$target], $policy->inspectionTargets);
     }
 
+    public function testPublicServiceEvaluatesHostPolicyOncePerPublicOperationWithDecodedInspectionValue(): void
+    {
+        $policy = new RecordingSystemPolicy();
+        $service = $this->service(new SystemFixedClock(1790000000), $policy, 60);
+        $target = '/orders%2F15';
+
+        self::assertTrue($service->accepts($target));
+        self::assertSame(['/orders/15'], $policy->inspectionTargets);
+
+        $policy->reset();
+        $token = $service->issue($target);
+        self::assertNotNull($token);
+        self::assertSame(['/orders/15'], $policy->inspectionTargets);
+
+        $policy->reset();
+        self::assertInstanceOf(VerifiedReturnTargetDTO::class, $service->verify($token));
+        self::assertSame(['/orders/15'], $policy->inspectionTargets);
+    }
+
+    public function testCanonicallyInvalidTargetDoesNotReachHostPolicy(): void
+    {
+        $policy = new RecordingSystemPolicy();
+        $service = $this->service(new SystemFixedClock(1790000000), $policy, 60);
+
+        self::assertFalse($service->accepts('/%2F%2Fevil.example'));
+        self::assertSame([], $policy->inspectionTargets);
+    }
+
+    public function testHostPolicyRejectionMakesIssueReturnNullAfterOnePolicyCall(): void
+    {
+        $policy = new SystemPolicy(false);
+        $service = $this->service(new SystemFixedClock(1790000000), $policy, 60);
+
+        self::assertNull($service->issue('/orders%2F15'));
+        self::assertSame(1, $policy->calls);
+    }
+
+    public function testHostPolicyThrowableIdentityPropagatesThroughPublicServiceBoundary(): void
+    {
+        $exception = new RuntimeException('preconstructed host policy failure');
+        $service = $this->service(
+            new SystemFixedClock(1790000000),
+            new ThrowingSystemPolicy($exception),
+            60,
+        );
+
+        try {
+            $service->accepts('/orders%2F15');
+            self::fail('The preconstructed Host policy exception must propagate.');
+        } catch (Throwable $actual) {
+            self::assertSame($exception, $actual);
+        }
+    }
+
     public function testPublicServiceRejectsMalformedPercentSyntax(): void
     {
         $service = $this->service(new SystemFixedClock(1790000000), null, 60);
@@ -217,10 +273,14 @@ final class HmacReturnTargetServiceSystemTest extends TestCase
 
 final class SystemPolicy implements ReturnTargetRestrictionPolicyInterface
 {
+    public int $calls = 0;
+
     public function __construct(public bool $allowed) {}
 
     public function allows(string $inspectionTarget): bool
     {
+        $this->calls++;
+
         return $this->allowed && str_starts_with($inspectionTarget, '/orders/15');
     }
 }
@@ -232,11 +292,26 @@ final class RecordingSystemPolicy implements ReturnTargetRestrictionPolicyInterf
      */
     public array $inspectionTargets = [];
 
+    public function reset(): void
+    {
+        $this->inspectionTargets = [];
+    }
+
     public function allows(string $inspectionTarget): bool
     {
         $this->inspectionTargets[] = $inspectionTarget;
 
         return true;
+    }
+}
+
+final class ThrowingSystemPolicy implements ReturnTargetRestrictionPolicyInterface
+{
+    public function __construct(private readonly RuntimeException $exception) {}
+
+    public function allows(string $inspectionTarget): bool
+    {
+        throw $this->exception;
     }
 }
 
