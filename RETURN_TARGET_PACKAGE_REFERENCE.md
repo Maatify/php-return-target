@@ -201,8 +201,6 @@ before redirecting, the Host owns re-validation of the transformed value.
 
 The `Adapter/`, `Config/`, `DTO/`, `Exception/`, `Service/`, and `Validation/` responsibilities are materialized for the implemented Runtime.
 
-`FILE-05` is closed by the real source implementation and PHPStan maximum-level configuration covering `src/`, `tests/`, `examples/`, and `consumer-verification/`.
-
 ## Composer Ownership
 
 Composer identity, requirements, dependencies, autoloading, configuration, stability, and distribution metadata are owned by `composer.json`.
