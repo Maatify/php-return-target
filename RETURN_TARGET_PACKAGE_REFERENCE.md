@@ -68,3 +68,20 @@ The `Adapter/`, `Config/`, `DTO/`, `Exception/`, `Service/`, and `Validation/` r
 Composer identity, requirements, dependencies, autoloading, configuration, stability, and distribution metadata are owned by `composer.json`.
 
 The current direct Runtime dependencies are `php ^8.4`, `ext-hash *`, `ext-json *`, `maatify/crypto ^1.0`, `maatify/exceptions ^1.0`, and `maatify/shared-common ^1.0`.
+
+## Technical Consumer Workflow
+
+The canonical consumer workflow is:
+
+```text
+Host input
+→ ReturnTargetServiceInterface / canonical HmacReturnTargetService
+→ canonical acceptance / optional Host restriction
+→ token issue or verify
+→ VerifiedReturnTargetDTO / normal null rejection
+→ Host-owned redirect decision and execution
+```
+
+The Host constructs and supplies the public `KeyProviderInterface`, the `ClockInterface` implementation, and the optional `ReturnTargetRestrictionPolicyInterface`. The Host also owns key loading, HTTP, router, session, authentication, authorization, fallback destinations, and redirect execution. The canonical package implementation owns target validation and token verification; it never executes a redirect.
+
+See the [Usage Guide](docs/guides/USAGE_GUIDE.md) for integration guidance and [examples/](examples/) for maintained Public API examples. Those artifacts explain and demonstrate this contract; they are not alternative contract sources.

@@ -1,5 +1,7 @@
 /vendor/
 /composer.lock
+/consumer-verification/vendor/
+/consumer-verification/composer.lock
 
 .phpunit.result.cache
 .php-cs-fixer.cache

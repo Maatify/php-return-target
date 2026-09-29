@@ -1,0 +1,16 @@
+# maatify/php-return-target
+
+> Framework-agnostic PHP library for stateless signed internal return-target tokens with public issue and verify workflows.
+
+For consumer use, follow the Package Reference for the supported Public Contract. Visible in repository != supported consumer contract: source internals, tests, fixtures, undocumented methods, contributor files, AGENTS.md, and engineering standards are not consumer contracts.
+
+## Primary consumer documentation
+
+- [README.md](README.md) — package overview, unpublished status, requirements, Quick Usage, and Public Runtime API overview.
+- [RETURN_TARGET_PACKAGE_REFERENCE.md](RETURN_TARGET_PACKAGE_REFERENCE.md) — canonical public/runtime/behavioral contract and complete Public Runtime API inventory.
+- [docs/guides/USAGE_GUIDE.md](docs/guides/USAGE_GUIDE.md) — consumer integration workflows, boundaries, inputs, outputs, and rejection semantics.
+- [examples/](examples/) — maintained examples using the documented Public API and production autoload.
+
+## Project history
+
+- [CHANGELOG.md](CHANGELOG.md) — factual change history; no release is currently published.
