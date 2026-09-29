@@ -1,0 +1,7 @@
+parameters:
+    level: max
+    paths:
+        - src
+        - tests
+        - examples
+        - consumer-verification
