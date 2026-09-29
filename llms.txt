@@ -14,3 +14,7 @@ For consumer use, follow the Package Reference for the supported Public Contract
 ## Project history
 
 - [CHANGELOG.md](CHANGELOG.md) — factual change history; no release is currently published.
+
+## Release and support
+
+- [SECURITY.md](SECURITY.md) — security, support, and private vulnerability reporting policy.

@@ -18,7 +18,8 @@
     ],
     "support": {
         "issues": "https://github.com/Maatify/php-return-target/issues",
-        "source": "https://github.com/Maatify/php-return-target"
+        "source": "https://github.com/Maatify/php-return-target",
+        "security": "https://github.com/Maatify/php-return-target/security/policy"
     },
     "autoload": {
         "psr-4": {
