@@ -7,13 +7,14 @@ use Maatify\Crypto\KeyRotation\KeyStatusEnum;
 use Maatify\Crypto\KeyRotation\Providers\InMemoryKeyProvider;
 use Maatify\ReturnTarget\Config\ReturnTargetConfig;
 use Maatify\ReturnTarget\Service\HmacReturnTargetService;
+use Maatify\ReturnTarget\Validation\ReturnTargetRestrictionPolicyInterface;
 use Maatify\SharedCommon\Contracts\ClockInterface;
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 
 final class ExampleClock implements ClockInterface
 {
-    public function __construct(private readonly int $timestamp) {}
+    public function __construct(public int $timestamp) {}
 
     public function now(): \DateTimeImmutable
     {
@@ -26,6 +27,31 @@ final class ExampleClock implements ClockInterface
     }
 }
 
+final class ExampleRestrictionPolicy implements ReturnTargetRestrictionPolicyInterface
+{
+    public bool $allowsTarget = true;
+
+    public function allows(string $inspectionTarget): bool
+    {
+        return $this->allowsTarget && str_starts_with($inspectionTarget, '/orders/15');
+    }
+}
+
+function failExample(string $message): never
+{
+    fwrite(STDERR, $message . "\n");
+    exit(1);
+}
+
+function expectNull(mixed $value, string $message): void
+{
+    if ($value !== null) {
+        failExample($message);
+    }
+}
+
+$clock = new ExampleClock(1790000000);
+$policy = new ExampleRestrictionPolicy();
 $service = new HmacReturnTargetService(
     new ReturnTargetConfig('example-only', 300),
     new InMemoryKeyProvider([
@@ -36,21 +62,37 @@ $service = new HmacReturnTargetService(
             new \DateTimeImmutable('@1'),
         ),
     ]),
-    new ExampleClock(1790000000),
+    $clock,
+    $policy,
 );
 
-$target = '/account/orders?status=paid';
+$target = '/orders%2F15?tab=a%2Fb';
+if (! $service->accepts($target)) {
+    failExample('Example accepted target was rejected.');
+}
+
+if ($service->accepts('https://example.test')) {
+    failExample('Example unsafe target was accepted.');
+}
+
 $token = $service->issue($target);
 
 if ($token === null) {
-    fwrite(STDERR, "Example target was rejected.\n");
-    exit(1);
+    failExample('Example target did not produce a token.');
 }
 
 $verified = $service->verify($token);
-if ($verified === null || $verified->target !== $target) {
-    fwrite(STDERR, "Example token could not be verified.\n");
-    exit(1);
+if ($verified === null || $verified->target !== $target || $verified->expiresAt !== 1790000300) {
+    failExample('Example token did not preserve the exact target and expiry.');
 }
 
-echo json_encode($verified, JSON_THROW_ON_ERROR) . "\n";
+$policy->allowsTarget = false;
+if ($service->verify($token) !== null) {
+    failExample('Example current policy did not reject the token.');
+}
+
+$policy->allowsTarget = true;
+$clock->timestamp = 1790000300;
+expectNull($service->verify($token), 'Example expiry boundary did not reject the token.');
+
+echo json_encode(['target' => $target, 'expiresAt' => 1790000300], JSON_THROW_ON_ERROR) . "\n";

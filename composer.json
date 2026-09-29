@@ -47,11 +47,11 @@
         "analyse": "phpstan analyse --configuration=phpstan.neon --memory-limit=512M",
         "format": [
             "php-cs-fixer fix --config=.php-cs-fixer.dist.php",
-            "@php scripts/ci/check-per-cs-31-delta.php .php-cs-fixer.dist.php src tests scripts/ci"
+            "@php scripts/ci/check-per-cs-31-delta.php .php-cs-fixer.dist.php src tests scripts/ci examples consumer-verification"
         ],
         "format:check": [
             "php-cs-fixer check --config=.php-cs-fixer.dist.php",
-            "@php scripts/ci/check-per-cs-31-delta.php .php-cs-fixer.dist.php src tests scripts/ci"
+            "@php scripts/ci/check-per-cs-31-delta.php .php-cs-fixer.dist.php src tests scripts/ci examples consumer-verification"
         ],
         "test": "phpunit --configuration=phpunit.xml",
         "test:unit": "phpunit --configuration=phpunit.xml --testsuite=unit",

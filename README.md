@@ -80,7 +80,7 @@ The package does not execute redirects and does not own HTTP, routing, sessions,
 
 ## Quality Status
 
-The repository defines local and CI gates for Composer validation, Composer 2.10 dependency policy audit, latest/lowest dependency resolution, PHP 8.4/8.5 tests, PHPStan max, formatting, syntax, whitespace, examples, Consumer Verification, and workflow lint. GitHub `Final Gate` is the stable aggregate CI check; this repository does not claim a CI PASS until a Lead opens the Child PR and its exact-head run succeeds.
+The repository defines local and CI gates for Composer validation, Composer 2.10 dependency policy audit, latest/lowest dependency resolution, PHP 8.4/8.5 tests, PHPStan max, formatting, syntax, whitespace, examples, Consumer Verification, and workflow lint. GitHub `Final Gate` is the stable aggregate CI check; the actual status for a commit is reported by its GitHub Actions run.
 
 ## Development and Testing
 

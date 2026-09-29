@@ -3,7 +3,9 @@
     "description": "Development-only external consumer verification for php-return-target.",
     "type": "project",
     "require": {
-        "maatify/php-return-target": "*"
+        "maatify/crypto": "^1.0",
+        "maatify/php-return-target": "*",
+        "maatify/shared-common": "^1.0"
     },
     "repositories": [
         {

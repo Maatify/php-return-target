@@ -27,8 +27,8 @@ Construct `HmacReturnTargetService` with `ReturnTargetConfig`, a Host-owned `Key
 | --- | --- | --- |
 | Public service construction and token issue/verify | [Basic workflow](#basic-workflow) | [`examples/basic_usage.php`](../../examples/basic_usage.php) |
 | Exact target and deterministic expiry | [Basic workflow](#basic-workflow) | [`examples/basic_usage.php`](../../examples/basic_usage.php) |
-| Restrict-only policy and current-policy rejection | [Policy workflow](#policy-workflow) | [`consumer-verification/verify.php`](../../consumer-verification/verify.php) |
-| Unsafe target and expiry rejection | [Rejection workflow](#rejection-workflow) | [`consumer-verification/verify.php`](../../consumer-verification/verify.php) |
+| Restrict-only policy and current-policy rejection | [Policy workflow](#policy-workflow) | [`examples/basic_usage.php`](../../examples/basic_usage.php) |
+| Unsafe target and expiry rejection | [Rejection workflow](#rejection-workflow) | [`examples/basic_usage.php`](../../examples/basic_usage.php) |
 
 ## Basic Workflow
 
@@ -50,7 +50,7 @@ Input → Public Call → Result → Boundary:
 3. **Result:** a policy can reject a target or a previously issued token when current policy no longer allows it; it cannot make an unsafe target acceptable.
 4. **Boundary:** policy rules remain Host-owned, while canonical target and token rules remain package-owned.
 
-The external Consumer Verification Harness demonstrates this workflow without PHPUnit, tests, fixtures, Host namespaces, or direct source-file loading.
+The maintained runnable example demonstrates this workflow through the Public API. The external Consumer Verification Harness separately proves the same consumer boundary; it is verification evidence, not a consumer example.
 
 ## Rejection Workflow
 
@@ -64,3 +64,7 @@ Input → Public Call → Result → Boundary:
 ## Canonical Contract
 
 The [Package Reference](../../RETURN_TARGET_PACKAGE_REFERENCE.md) is the canonical public/runtime/behavioral contract and complete Public Runtime API inventory. This guide provides consumer integration guidance and does not replace it.
+
+## Development Verification
+
+The repository's Consumer Verification Harness uses a separate Composer root and clean-state runs to prove production autoload and external-consumer behavior. It is a verification gate and is not a substitute for the maintained example above.

@@ -4,8 +4,9 @@ set -euo pipefail
 root_dir="$(git rev-parse --show-toplevel)"
 cd "$root_dir"
 
-if git grep -nI -E '[[:blank:]]$' HEAD --; then
-    echo 'Committed trailing whitespace detected.' >&2
+empty_tree="$(git hash-object -t tree /dev/null)"
+if ! git diff --check "$empty_tree" HEAD --; then
+    echo 'Committed-tree whitespace errors detected.' >&2
     exit 1
 fi
 
@@ -16,8 +17,12 @@ fi
 
 while IFS= read -r -d '' file; do
     if file "$file" | grep -q 'text'; then
-        if grep -nI -E '[[:blank:]]$' "$file"; then
-            echo "Trailing whitespace detected in $file." >&2
+        diff_output=''
+        diff_rc=0
+        diff_output="$(git diff --no-index --check /dev/null "$file" 2>&1)" || diff_rc=$?
+        if [[ "$diff_rc" -ne 1 || -n "$diff_output" ]]; then
+            printf '%s\n' "$diff_output" >&2
+            echo "Whitespace errors detected in untracked text file: $file." >&2
             exit 1
         fi
     fi
