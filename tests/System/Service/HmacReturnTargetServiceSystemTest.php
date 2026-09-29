@@ -51,6 +51,43 @@ final class HmacReturnTargetServiceSystemTest extends TestCase
         self::assertNull($service->issue('https://example.test'));
     }
 
+    public function testPublicWorkflowRejectsTamperedMalformedAndOversizedOpaqueTokens(): void
+    {
+        $service = $this->service(new SystemFixedClock(1790000000), null, 60);
+        $token = $service->issue('/orders/15');
+        self::assertNotNull($token);
+
+        $tamperedToken = $token . 'x';
+
+        self::assertNull($service->verify($tamperedToken));
+        self::assertNull($service->verify('malformed-opaque-token'));
+        self::assertNull($service->verify(str_repeat('x', 4097)));
+    }
+
+    public function testPublicWorkflowIsolatesTokensByAudience(): void
+    {
+        $clock = new SystemFixedClock(1790000000);
+        $provider = new InMemoryKeyProvider([
+            new CryptoKeyDTO('key-1', '01234567890123456789012345678901', KeyStatusEnum::ACTIVE, new DateTimeImmutable('@1')),
+        ]);
+        $audienceA = new HmacReturnTargetService(
+            new ReturnTargetConfig('audience-a', 60),
+            $provider,
+            $clock,
+        );
+        $audienceB = new HmacReturnTargetService(
+            new ReturnTargetConfig('audience-b', 60),
+            $provider,
+            $clock,
+        );
+
+        $token = $audienceA->issue('/orders/15');
+        self::assertNotNull($token);
+
+        self::assertNotNull($audienceA->verify($token));
+        self::assertNull($audienceB->verify($token));
+    }
+
     public function testPublicServiceAcceptsThe2048ByteTargetAndRejects2049Bytes(): void
     {
         $service = $this->service(new SystemFixedClock(1790000000), null, 60);
