@@ -85,3 +85,36 @@ Host input
 The Host constructs and supplies the public `KeyProviderInterface`, the `ClockInterface` implementation, and the optional `ReturnTargetRestrictionPolicyInterface`. The Host also owns key loading, HTTP, router, session, authentication, authorization, fallback destinations, and redirect execution. The canonical package implementation owns target validation and token verification; it never executes a redirect.
 
 See the [Usage Guide](docs/guides/USAGE_GUIDE.md) for integration guidance and [examples/](examples/) for maintained Public API examples. Those artifacts explain and demonstrate this contract; they are not alternative contract sources.
+
+## Extension Guide
+
+### Complete Host Implementation
+
+A Host may implement `ReturnTargetServiceInterface` as a complete replacement
+implementation. It is bound only by the Shared Behavioral Floor described in
+this reference. It may differ in token format, cryptography, key management,
+validation internals, TTL policy, and storage or persistence internals, as
+specified by DEC-003 and the Public Contract.
+
+### Canonical HMAC Restriction Extension
+
+With `HmacReturnTargetService`, the only Host extension point inside the
+canonical implementation is `ReturnTargetRestrictionPolicyInterface`. It is a
+restrict-only policy and does not expand canonical safety guarantees.
+
+### Non-Extension Internals
+
+The following are not extension surfaces:
+
+- `HmacReturnTargetTokenCodec`;
+- `CanonicalReturnTargetValidator`; and
+- `VerifiedTokenPayloadDTO`.
+
+No additional interface is created for these internals.
+
+## Persistence / Operational Read Classification: Out of Scope
+
+The package owns no persisted state, package tables, or schema, and no
+operational reporting surface is applicable to the current contract. This is a
+current-state classification and does not generalize the package's future
+scope.

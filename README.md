@@ -14,6 +14,8 @@
 [![Examples](https://img.shields.io/badge/Examples-maintained-blue)](examples/)
 [![Package Reference](https://img.shields.io/badge/Package%20Reference-canonical-blue)](RETURN_TARGET_PACKAGE_REFERENCE.md)
 [![Changelog](https://img.shields.io/badge/Changelog-Unreleased-lightgrey)](CHANGELOG.md)
+[![Security Policy](https://img.shields.io/badge/Security%20Policy-current-blue)](SECURITY.md)
+[![Contributing Guide](https://img.shields.io/badge/Contributing%20Guide-current-blue)](CONTRIBUTING.md)
 
 Stateless signed internal return-target handling for framework-agnostic PHP applications.
 
@@ -77,6 +79,9 @@ The package does not execute redirects and does not own HTTP, routing, sessions,
 - [Examples](examples/) — maintained Public API examples.
 - [Package Reference](RETURN_TARGET_PACKAGE_REFERENCE.md) — canonical public/runtime/behavioral contract.
 - [Changelog](CHANGELOG.md) — factual project history.
+- [Security Policy](SECURITY.md) — private vulnerability reporting route and package security ownership.
+- [Contributing Guide](CONTRIBUTING.md) — contribution paths, local verification, and repository workflow.
+- [Code of Conduct](CODE_OF_CONDUCT.md) — community collaboration and conduct rules.
 
 ## Quality Status
 

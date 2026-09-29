@@ -21,6 +21,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - GitHub Actions CI for PHP 8.4 and 8.5, latest/lowest dependencies, Composer 2.10 policy audit, syntax, whitespace, PHPStan max, formatting, tests, examples, and workflow lint.
 - Stable `Final Gate` aggregate CI job and immutable action pins.
 - Consumer Usage Guide, runnable Public API example, `llms.txt`, and synchronized Package Reference/README workflow documentation.
+- Security policy with private reporting through `support@maatify.dev`.
+- CONTRIBUTING guide covering contribution paths, verification gates, testing boundaries, and reusable-library lock policy.
+- Code of Conduct and linked governance/presentation documentation surfaces.
+- Composer `support.security` metadata synchronized with the repository security policy URL.
 
 ### Current State
 
