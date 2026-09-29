@@ -10,7 +10,7 @@
 - **Scope / Concern:** Return-target runtime architecture, Public Contract, security boundary, crypto integration, extensibility boundary, and persistence boundary
 - **Supersedes:** None
 - **Superseded By:** None
-- **Canonical Contract / Current Owner:** This Decision Record — active architecture authority until implemented canonical contracts are published
+- **Canonical Contract / Current Owner:** [RETURN_TARGET_PACKAGE_REFERENCE.md](../../RETURN_TARGET_PACKAGE_REFERENCE.md) — current implemented public/runtime/behavioral contract; this `ACTIVE` Decision Record remains the durable architecture, security-boundary, and rationale authority
 
 > This record is Owner-approved and `ACTIVE`. It is the implementation authority for its recorded scope. Any material boundary change requires formal reopen or supersession under the Decision Governance Standard.
 
