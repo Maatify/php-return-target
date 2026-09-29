@@ -30,7 +30,7 @@ The decision is designed to consume stable reusable capabilities rather than dup
 
 ### 1. Package Capability
 
-`maatify/php-return-target` will be a standalone, framework-agnostic library responsible for this bounded flow:
+`maatify/php-return-target` is a standalone, framework-agnostic library responsible for this bounded flow:
 
 ```text
 Untrusted internal return target
@@ -40,7 +40,7 @@ Untrusted internal return target
 → verified internal return target
 ```
 
-The package will not execute redirects.
+The package does not execute redirects.
 
 ### 2. Dual Integration Path
 
@@ -192,7 +192,7 @@ The exact original representation remains the representation stored in the token
 
 ### 8. Stateless and Persistence Boundary
 
-The package will be stateless. It will not own or require PDO, SQL, MySQL/MariaDB, Redis, a database, schema, migrations, a Repository, token persistence, nonce persistence, session persistence, or a one-time-token registry. It will not depend on `maatify/persistence`.
+The package is stateless. It does not own or require PDO, SQL, MySQL/MariaDB, Redis, a database, schema, migrations, a Repository, token persistence, nonce persistence, session persistence, or a one-time-token registry. It does not depend on `maatify/persistence`.
 
 A token may be verified more than once while valid. A return-target token is not an authentication or authorization credential. One-time consumption is outside v1.
 
@@ -324,11 +324,9 @@ ext-hash *
 ext-json *
 ```
 
-This decision does not modify `composer.json`.
-
 ### 14. Clock
 
-The canonical implementation will depend on `maatify/shared-common ^1.0` and consume `Maatify\SharedCommon\Contracts\ClockInterface`. It will not create a local Clock abstraction, and canonical expiry behavior will not use `time()` as its source.
+The canonical implementation depends on `maatify/shared-common ^1.0` and consumes `Maatify\SharedCommon\Contracts\ClockInterface`. It does not create a local Clock abstraction, and canonical expiry behavior does not use `time()` as its source.
 
 ### 15. Exceptions
 
@@ -988,7 +986,3 @@ Unknown-key classification relies only on the public `KeyProviderInterface` cont
 ## Decision Index Relationship
 
 This record is indexed under `Active Decisions`. `DEC-001` and `DEC-002` remain unchanged. This decision does not supersede either active decision.
-
-## Activation Status
-
-Owner approval on `2026-09-28` activates this record. It is implementation authority for the recorded scope. Changes within this scope remain subject to bounded review and the repository's normal Direct Lead Review process. This activation does not authorize Merge to `main`; every Merge still requires separate explicit Owner authorization.
