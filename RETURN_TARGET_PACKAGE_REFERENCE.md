@@ -47,6 +47,146 @@ failures remain governed by the codec contract; unknown failures are not blanket
 or swallowed. The direct Runtime dependencies are PHP `^8.4`, `ext-hash`, `ext-json`,
 `maatify/crypto ^1.0`, `maatify/exceptions ^1.0`, and `maatify/shared-common ^1.0`.
 
+## Public API Inventory
+
+The implemented public API is the following current contract.
+
+### `ReturnTargetServiceInterface`
+
+```php
+accepts(string $target): bool
+issue(string $target): ?string
+verify(string $token): ?VerifiedReturnTargetDTO
+```
+
+All conforming implementations provide the shared behavioral floor above: normal target
+or token rejection returns `false` or `null` as applicable, issuance never substitutes
+a fallback target, and successful verification returns a currently accepted,
+non-expired result.
+
+### `HmacReturnTargetService`
+
+This `final` class is the canonical implementation of the interface.
+
+```php
+HmacReturnTargetService(
+    ReturnTargetConfig $config,
+    KeyProviderInterface $keyProvider,
+    ClockInterface $clock,
+    ?ReturnTargetRestrictionPolicyInterface $restrictionPolicy = null,
+)
+```
+
+`KeyProviderInterface` and `ClockInterface` are public collaborator contracts supplied
+by dependencies; they are not package-owned interfaces. The optional
+`ReturnTargetRestrictionPolicyInterface` is the only Host extension inside this
+canonical implementation.
+
+### `ReturnTargetRestrictionPolicyInterface`
+
+```php
+allows(string $inspectionTarget): bool
+```
+
+This is a restrict-only policy. It is called once per acceptance evaluation, after
+canonical validation, with the validated single-decoded inspection representation.
+It cannot widen the package-owned safety boundary.
+
+### `ReturnTargetConfig`
+
+```php
+new ReturnTargetConfig(string $audience, int $ttlSeconds)
+```
+
+The readonly public values are `audience` and `ttlSeconds`. Canonical constraints are:
+
+- `audience` is `1..64` bytes and contains only `A-Z`, `a-z`, `0-9`, `.`, `_`, or `-`.
+- `ttlSeconds` is `1..3600` seconds.
+
+### `VerifiedReturnTargetDTO`
+
+```php
+new VerifiedReturnTargetDTO(string $target, int $expiresAt)
+```
+
+The readonly public properties are `target` and `expiresAt`. `expiresAt` is the
+authoritative Unix timestamp in seconds. The DTO implements `JsonSerializable` and its
+exact serialization shape is:
+
+```php
+[
+    'target' => string,
+    'expiresAt' => int,
+]
+```
+
+No additional fields are part of this result contract.
+
+### Package-owned exceptions
+
+The current package-owned exception contracts are `ReturnTargetExceptionInterface`,
+`InvalidReturnTargetConfigurationException`, and
+`ReturnTargetCryptoConfigurationException`. Their stable semantics are:
+
+- `InvalidReturnTargetConfigurationException` maps to the `maatify/exceptions`
+  `INVALID_ARGUMENT` contract.
+- `ReturnTargetCryptoConfigurationException` maps to `MAATIFY_ERROR`.
+
+Not every throwable is package-owned: unknown provider, infrastructure, and Host-policy
+throwables propagate unchanged.
+
+## Canonical HMAC Security and Configuration Contract
+
+### Token semantics
+
+The canonical token family is `rt1`. Tokens are opaque to consumers; consumers must not
+parse or depend on internal framing. The canonical token is signed, not encrypted. It
+provides integrity, authenticity, bounded lifetime, and context/audience isolation, but
+does not provide confidentiality.
+
+Return targets and tokens must not carry passwords, credentials, session secrets, API
+secrets, confidential tokens, sensitive PII, or other confidential data. Wire-format
+internals remain an implementation detail rather than a consumer contract.
+
+### Resource and key bounds
+
+- The maximum target length is `2048` bytes.
+- The maximum token length is `4096` bytes.
+- Configuration uses the audience and TTL constraints stated above.
+
+The canonical HMAC implementation requires exactly one ACTIVE key, a non-empty active
+key ID, and key material supplied by the Host through the public `KeyProviderInterface`.
+The key material must satisfy the consumed crypto/HKDF contract; this reference does
+not add a separate minimum key length.
+
+### Verification failure semantics
+
+- Unknown `kid`, decryption-disallowed key, expired, malformed, or untrusted token:
+  normal rejection returning `null`.
+- No active key, multiple active keys, classified HKDF or key-configuration failure,
+  or inconsistent post-lookup key state: `ReturnTargetCryptoConfigurationException`.
+- Unknown provider or infrastructure throwables: propagate unchanged.
+
+### Exact target and redirect boundary
+
+The original target representation is preserved exactly. The decoded target is for
+inspection only, and the package does not perform redirects. If a Host decodes,
+normalizes, resolves, rewrites, or otherwise transforms the verified returned target
+before redirecting, the Host owns re-validation of the transformed value.
+
+## Verification Architecture
+
+- **Unit:** protects isolated canonical logic and edge cases.
+- **System:** protects public library workflows from the Public API to observable
+  results across the real in-process implementation chain.
+- **Consumer Verification Harness:** uses a separate Composer root, production
+  autoload, clean-state execution, two independent runs, and a Public API workflow.
+  It complements, and does not replace, Unit/System verification or Real Host
+  Validation.
+- **Integration applicability:** the package currently owns no persistence, database,
+  or external-service Runtime boundary. A database/service Integration suite is not
+  applicable to the current contract.
+
 ## Current Boundary
 
 - The package currently has no persistence, database, SQL, or PDO behavior.

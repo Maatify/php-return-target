@@ -96,7 +96,8 @@ final class HmacReturnTargetTokenCodec
     /**
      * Verifies a canonical token and returns its authenticated payload when valid.
      *
-     * Normal malformed, untrusted, expired, or policy-rejected tokens return null.
+     * Normal malformed, untrusted, expired, unknown-key, or decryption-disallowed
+     * tokens return null.
      * Key-state, HKDF, and inconsistent decryption-key failures throw
      * ReturnTargetCryptoConfigurationException with the original failure preserved.
      * Infrastructure and unclassified provider failures propagate unchanged.

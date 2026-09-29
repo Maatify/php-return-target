@@ -73,6 +73,10 @@ The public substitution boundary is `ReturnTargetServiceInterface`. The canonica
 
 The package does not execute redirects and does not own HTTP, routing, sessions, authentication, authorization, persistence, databases, or token consumption state. The Host owns those concerns and the construction of key material and time policy.
 
+The canonical `rt1` token is signed, not encrypted, and must not carry confidential information or secrets.
+
+Normal target, token, policy, or expiry rejection returns `false` or `null`. Invalid canonical configuration throws `InvalidReturnTargetConfigurationException`; classified canonical crypto/key configuration failures throw `ReturnTargetCryptoConfigurationException`; unknown provider, external, or Host-policy throwables propagate unchanged.
+
 ## Documentation
 
 - [Usage Guide](docs/guides/USAGE_GUIDE.md) — consumer fit, boundaries, and workflows.
