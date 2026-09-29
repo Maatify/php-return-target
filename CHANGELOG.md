@@ -2,9 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
-The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project currently has no published release.
+The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and release entries use Semantic Versioning.
 
 ## [Unreleased]
+
+## [1.0.0-rc.1] - 2026-09-29
 
 ### Added
 
@@ -26,7 +28,5 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Code of Conduct and linked governance/presentation documentation surfaces.
 - Composer `support.security` metadata synchronized with the repository security policy URL.
 
-### Current State
-
-- The package remains `Development / Unpublished`.
-- No version has been published.
+[Unreleased]: https://github.com/Maatify/php-return-target/compare/v1.0.0-rc.1...HEAD
+[1.0.0-rc.1]: https://github.com/Maatify/php-return-target/releases/tag/v1.0.0-rc.1
