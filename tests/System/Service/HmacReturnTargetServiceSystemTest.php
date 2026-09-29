@@ -88,6 +88,37 @@ final class HmacReturnTargetServiceSystemTest extends TestCase
         self::assertNull($audienceB->verify($token));
     }
 
+    public function testPublicWorkflowPreservesTokensAcrossSuccessfulKeyRotation(): void
+    {
+        $clock = new SystemFixedClock(1790000000);
+        $provider = new InMemoryKeyProvider([
+            new CryptoKeyDTO('key-a', '01234567890123456789012345678901', KeyStatusEnum::ACTIVE, new DateTimeImmutable('@1')),
+            new CryptoKeyDTO('key-b', 'abcdefghijklmnopqrstuvwxyz123456', KeyStatusEnum::INACTIVE, new DateTimeImmutable('@1')),
+        ]);
+        $service = new HmacReturnTargetService(
+            new ReturnTargetConfig('admin-auth', 60),
+            $provider,
+            $clock,
+        );
+
+        self::assertSame(KeyStatusEnum::ACTIVE, $provider->find('key-a')->status());
+        self::assertSame(KeyStatusEnum::INACTIVE, $provider->find('key-b')->status());
+
+        $preRotationToken = $service->issue('/orders/15?rotation=before');
+        self::assertNotNull($preRotationToken);
+
+        $provider->promote('key-b');
+
+        self::assertSame(KeyStatusEnum::INACTIVE, $provider->find('key-a')->status());
+        self::assertSame(KeyStatusEnum::ACTIVE, $provider->find('key-b')->status());
+        self::assertInstanceOf(VerifiedReturnTargetDTO::class, $service->verify($preRotationToken));
+
+        $postRotationToken = $service->issue('/orders/15?rotation=after');
+        self::assertNotNull($postRotationToken);
+        self::assertNotSame($preRotationToken, $postRotationToken);
+        self::assertInstanceOf(VerifiedReturnTargetDTO::class, $service->verify($postRotationToken));
+    }
+
     public function testPublicServiceAcceptsThe2048ByteTargetAndRejects2049Bytes(): void
     {
         $service = $this->service(new SystemFixedClock(1790000000), null, 60);
