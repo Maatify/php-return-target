@@ -16,9 +16,9 @@
 
 ## Context
 
-`maatify/php-return-target` is currently a `Development / Unpublished` standalone package. It has no Public Runtime API implemented, no materialized `src/` directory, and no persistence or database behavior. `DEC-002` has closed the source topology as `Single Capability`.
+`maatify/php-return-target` is a standalone package with an implemented Public Runtime API and a materialized `src/` directory. It has no persistence or database behavior. `DEC-002` has closed the source topology as `Single Capability`.
 
-Before the first Runtime Work Unit, the material architecture, security boundary, Public Contract, crypto integration boundary, extensibility boundary, and persistence boundary must be recorded. Earlier implementations in Host projects are evidence for discussion only; they are not this package's contract.
+The material architecture, security boundary, Public Contract, crypto integration boundary, extensibility boundary, and persistence boundary are recorded here. Earlier implementations in Host projects are evidence for discussion only; they are not this package's contract.
 
 The decision is designed to consume stable reusable capabilities rather than duplicate them:
 
@@ -317,14 +317,12 @@ Because `maatify/crypto v1.0.0` does not expose a stable generic signing/HMAC Pu
 
 The canonical Runtime directly uses the Hash extension for HMAC operations and the JSON extension for canonical token payload serialization/deserialization and the `JsonSerializable` result contract.
 
-When Runtime implementation begins under this `ACTIVE` decision, the package must declare:
+The package declares the following direct Runtime requirements:
 
 ```text
 ext-hash *
 ext-json *
 ```
-
-as direct Runtime requirements.
 
 This decision does not modify `composer.json`.
 
@@ -452,7 +450,7 @@ Construction throws `InvalidReturnTargetConfigurationException` when:
 
 A successfully constructed `ReturnTargetConfig` is therefore valid canonical configuration and does not require service-level exception handling for these invariants.
 
-Its future canonical placement is:
+Its canonical placement is:
 
 ```text
 src/Config/ReturnTargetConfig.php
@@ -872,7 +870,7 @@ The canonical package implementation does not own HTTP, PSR-7, framework integra
 
 This decision does not change `DEC-002`. Under this `ACTIVE` decision, the package remains `Source Topology: Single Capability`.
 
-Future responsibilities may be materialized only when supported by real Runtime responsibilities:
+The implemented Runtime uses these responsibility-based directories:
 
 ```text
 src/
@@ -901,8 +899,6 @@ src/DTO/VerifiedTokenPayloadDTO.php
 `VerifiedTokenPayloadDTO` remains internal and does not expand the Public DTO contract.
 
 Interfaces are placed with the responsibility they describe when a more specific responsibility owns them. No root generic `Contract/` directory is created by default.
-
-This Work Unit creates no source files.
 
 The internal `VerifiedTokenPayloadDTO` belongs to the `DTO/` responsibility and does not expand the Public DTO contract.
 
@@ -973,7 +969,7 @@ Unknown-key classification relies only on the public `KeyProviderInterface` cont
 - Canonical verification validates the strict single-active-key invariant before key resolution.
 - Provider/infrastructure failures are not silently converted into unknown-token rejection.
 - Canonical issuance never returns an empty-`kid` or over-4096-byte token.
-- Package exception hierarchy and stable error-code behavior are fixed before Runtime implementation.
+- Package exception hierarchy and stable error-code behavior are fixed by this decision.
 - The canonical `rt1` payload has one deterministic JSON wire representation with exact member order and strict scalar types.
 - Canonical verification authenticates the literal received payload representation before JSON semantic processing and rejects non-canonical JSON representations.
 - The decoded HMAC-SHA256 signature must be exactly 32 bytes.
@@ -985,10 +981,7 @@ Unknown-key classification relies only on the public `KeyProviderInterface` cont
 - Host-specific restrictions are possible through a restrict-only policy.
 - Hosts with materially different requirements can replace the service implementation entirely.
 - Canonical security guarantees do not automatically extend to custom implementations.
-- The first Runtime source must be a real implementation, not a placeholder.
-- `FILE-05` may be closed only with real Runtime code and PHPStan configuration.
-- Composer dependencies remain unchanged until Runtime implementation begins.
-- The Package Reference becomes the canonical current Public Contract after implementation.
+- The Package Reference is the canonical current Public Contract.
 - README, usage examples, CI, and testing must follow the actual implemented behavior.
 - Any material boundary change after activation requires formal reopen or supersession.
 
@@ -998,4 +991,4 @@ This record is indexed under `Active Decisions`. `DEC-001` and `DEC-002` remain 
 
 ## Activation Status
 
-Owner approval on `2026-09-28` activates this record. It is now implementation authority for the recorded scope. Dependent Runtime work may proceed only through bounded Work Units and the repository's normal Direct Lead Review process. This activation does not authorize Merge to `main`; every Merge still requires separate explicit Owner authorization.
+Owner approval on `2026-09-28` activates this record. It is implementation authority for the recorded scope. Changes within this scope remain subject to bounded review and the repository's normal Direct Lead Review process. This activation does not authorize Merge to `main`; every Merge still requires separate explicit Owner authorization.

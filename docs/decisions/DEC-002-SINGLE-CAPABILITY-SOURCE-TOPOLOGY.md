@@ -22,14 +22,14 @@
 
 **Source Topology: Single Capability**
 
-When `src/` is materialized in a future Runtime Work Unit, it will follow:
+The package source tree follows:
 
 ```text
 src/
 └── {Responsibility}/
 ```
 
-Responsibilities will be introduced only when supported by actual runtime responsibilities. No future Responsibility names are decided here.
+The `src/` structure remains responsibility-based. Responsibilities are represented only where they correspond to an actual package responsibility; this decision does not create a Domain or Capability root.
 
 ## Rationale
 
