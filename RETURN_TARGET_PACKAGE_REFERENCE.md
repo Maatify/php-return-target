@@ -61,7 +61,7 @@ or swallowed. The direct Runtime dependencies are PHP `^8.4`, `ext-hash`, `ext-j
 
 The `Adapter/`, `Config/`, `DTO/`, `Exception/`, `Service/`, and `Validation/` responsibilities are materialized for the implemented Runtime.
 
-`FILE-05` is closed by the real source implementation and PHPStan maximum-level configuration covering `src/` and `tests/`.
+`FILE-05` is closed by the real source implementation and PHPStan maximum-level configuration covering `src/`, `tests/`, `examples/`, and `consumer-verification/`.
 
 ## Composer Ownership
 
