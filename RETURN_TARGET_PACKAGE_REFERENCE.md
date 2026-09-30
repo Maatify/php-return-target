@@ -2,7 +2,7 @@
 
 ## Package Purpose
 
-The current package concern is stateless signed internal return-target handling. A Packagist development/pre-release distribution is externally resolvable, including `dev-main`; the target `v1.0.0-rc.1` SemVer RC is not yet published.
+The package provides stateless signed internal return-target handling as a framework-agnostic Composer library.
 
 ## Public Runtime Contract
 

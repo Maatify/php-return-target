@@ -5,12 +5,10 @@
 
 ## Current Support State
 
-This package is currently in **Pre-Release**. Packagist exposes development versions, but the target `v1.0.0-rc.1` has not yet been published.
+The `v1.0.0-rc.1` Release Candidate is published as a pre-release through Packagist. No Stable release has been published.
 
-There is currently no published Stable release, no supported Stable release
-line, and no published SemVer Release Candidate (RC). Development/pre-release
-distribution does not create Stable support. This policy does not
-present `1.x` or `1.0` as a supported release line.
+The published RC does not establish a supported Stable release line. This
+policy does not present `1.x` or `1.0` as a supported release line.
 
 ## Reporting a Vulnerability
 
