@@ -27,8 +27,8 @@ final class CanonicalReturnTargetValidator
             return null;
         }
 
-        $decoded = $this->decodeOnce($target);
-        if (! $this->isDecodedValid($decoded)) {
+        [$decoded, $decodedPathLength] = $this->decodeOnce($target);
+        if (! $this->isDecodedValid($decoded, $decodedPathLength)) {
             return null;
         }
 
@@ -86,25 +86,38 @@ final class CanonicalReturnTargetValidator
         return true;
     }
 
-    private function decodeOnce(string $target): string
+    /**
+     * @return array{0: string, 1: int}
+     */
+    private function decodeOnce(string $target): array
     {
         $decoded = '';
+        $decodedPathLength = 0;
+        $questionPosition = strpos($target, '?');
         for ($i = 0, $length = strlen($target); $i < $length; $i++) {
             if ($target[$i] !== '%') {
                 $decoded .= $target[$i];
+                if ($questionPosition === false || $i < $questionPosition) {
+                    $decodedPathLength++;
+                }
+
                 continue;
             }
 
             $decoded .= chr($this->hexValue($target[$i + 1]) * 16 + $this->hexValue($target[$i + 2]));
+            if ($questionPosition === false || $i < $questionPosition) {
+                $decodedPathLength++;
+            }
+
             $i += 2;
         }
 
-        return $decoded;
+        return [$decoded, $decodedPathLength];
     }
 
-    private function isDecodedValid(string $target): bool
+    private function isDecodedValid(string $target, int $decodedPathLength): bool
     {
-        if (! str_starts_with($target, '/') || str_starts_with($target, '//') || $this->hasDotSegment($this->pathPart($target))) {
+        if (! str_starts_with($target, '/') || str_starts_with($target, '//') || $this->hasDotSegment(substr($target, 0, $decodedPathLength))) {
             return false;
         }
 
@@ -116,13 +129,6 @@ final class CanonicalReturnTargetValidator
         }
 
         return true;
-    }
-
-    private function pathPart(string $target): string
-    {
-        $questionPosition = strpos($target, '?');
-
-        return $questionPosition === false ? $target : substr($target, 0, $questionPosition);
     }
 
     private function hasDotSegment(string $path): bool
