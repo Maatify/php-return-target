@@ -4,11 +4,17 @@
 
 ![Maatify.dev](https://www.maatify.dev/assets/img/img/maatify_logo_white.svg)
 
-[![Status](https://img.shields.io/badge/Status-Development-blue)](README.md)
+[![Status](https://img.shields.io/badge/Status-Pre--Release-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-dev--main-blue)](https://packagist.org/packages/maatify/php-return-target)
 [![PHP](https://img.shields.io/badge/PHP-8.4-8892BF)](composer.json)
 [![License](https://img.shields.io/badge/License-Proprietary-green)](LICENSE)
 [![PHPStan](https://img.shields.io/badge/PHPStan-max-blue)](phpstan.neon)
+
+[![Packagist](https://img.shields.io/badge/Packagist-maatify%2Fphp--return--target-blue)](https://packagist.org/packages/maatify/php-return-target)
+[![Monthly Downloads](https://img.shields.io/packagist/dm/maatify/php-return-target)](https://packagist.org/packages/maatify/php-return-target)
+[![Total Downloads](https://img.shields.io/packagist/dt/maatify/php-return-target)](https://packagist.org/packages/maatify/php-return-target)
 [![Maatify Ecosystem](https://img.shields.io/badge/Maatify-Ecosystem-blueviolet)](https://github.com/Maatify)
+[![Install](https://img.shields.io/badge/Install-dev--main-brightgreen)](https://packagist.org/packages/maatify/php-return-target)
 
 [![Usage Guide](https://img.shields.io/badge/Usage%20Guide-current-blue)](docs/guides/USAGE_GUIDE.md)
 [![Examples](https://img.shields.io/badge/Examples-maintained-blue)](examples/)
@@ -25,9 +31,9 @@ Stateless signed internal return-target handling for framework-agnostic PHP appl
 
 ## Status
 
-**Development / Unpublished**
+**Pre-Release**
 
-The canonical Runtime API, external Consumer Verification Harness, examples, and CI gates are implemented. No externally installable release exists.
+Packagist currently exposes the development version `dev-main` and development branch versions for consumer verification. The target `v1.0.0-rc.1` is not yet published; these development versions are not the SemVer RC.
 
 ## Key Features
 
@@ -47,7 +53,13 @@ The canonical Runtime API, external Consumer Verification Harness, examples, and
 
 ## Installation
 
-There is no external installation command while the package is **Development / Unpublished**. Use the repository's Composer development setup and the documented public workflow.
+The currently published development/pre-release distribution is available through Packagist:
+
+```shell
+composer require maatify/php-return-target:dev-main
+```
+
+This installs the externally resolvable development version, not the target `v1.0.0-rc.1` RC.
 
 ## Quick Usage
 
