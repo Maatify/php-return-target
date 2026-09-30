@@ -45,6 +45,8 @@ final class CanonicalReturnTargetValidatorTest extends TestCase
             '/a%0Ab',
             '/a%7Fb',
             '/a%25E0%25A4%25A',
+            '/safe%3F/%2E%2E/admin',
+            '/safe%3F/%2E/admin',
             '/./orders',
             '/../orders',
             '/a/./b',

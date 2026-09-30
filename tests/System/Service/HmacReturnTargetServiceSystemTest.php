@@ -170,7 +170,8 @@ final class HmacReturnTargetServiceSystemTest extends TestCase
         $policy = new RecordingSystemPolicy();
         $service = $this->service(new SystemFixedClock(1790000000), $policy, 60);
 
-        self::assertFalse($service->accepts('/%2F%2Fevil.example'));
+        self::assertFalse($service->accepts('/safe%3F/%2E%2E/admin'));
+        self::assertNull($service->issue('/safe%3F/%2E%2E/admin'));
         self::assertSame([], $policy->inspectionTargets);
     }
 
@@ -248,6 +249,8 @@ final class HmacReturnTargetServiceSystemTest extends TestCase
         yield 'raw dot-dot segment' => ['target' => '/orders/../15', 'case' => 'raw dot-dot segment must be rejected'];
         yield 'encoded dot segment' => ['target' => '/orders/%2E/15', 'case' => 'encoded dot segment must be rejected'];
         yield 'encoded dot-dot segment' => ['target' => '/orders/%2E%2E/15', 'case' => 'encoded dot-dot segment must be rejected'];
+        yield 'decoded question boundary dot-dot segment' => ['target' => '/safe%3F/%2E%2E/admin', 'case' => 'decoded raw-path dot-dot segment must be rejected'];
+        yield 'decoded question boundary dot segment' => ['target' => '/safe%3F/%2E/admin', 'case' => 'decoded raw-path dot segment must be rejected'];
         yield 'second-stage percent escape' => ['target' => '/orders/%252F%252Fevil.example', 'case' => 'second-stage percent escape must be rejected'];
     }
 
