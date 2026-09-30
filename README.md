@@ -8,6 +8,7 @@
 [![PHP](https://img.shields.io/badge/PHP-8.4-8892BF)](composer.json)
 [![License](https://img.shields.io/badge/License-Proprietary-green)](LICENSE)
 [![PHPStan](https://img.shields.io/badge/PHPStan-max-blue)](phpstan.neon)
+
 [![Maatify Ecosystem](https://img.shields.io/badge/Maatify-Ecosystem-blueviolet)](https://github.com/Maatify)
 
 [![Usage Guide](https://img.shields.io/badge/Usage%20Guide-current-blue)](docs/guides/USAGE_GUIDE.md)
