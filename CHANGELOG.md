@@ -6,7 +6,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
-The Unreleased work targets `v1.0.0-rc.2`. It is in preparation and is not yet published; `v1.0.0-rc.1` remains the latest published pre-release.
+## [1.0.0-rc.2] - 2026-10-02
 
 ### Changed
 
@@ -30,5 +30,6 @@ The Unreleased work targets `v1.0.0-rc.2`. It is in preparation and is not yet p
 
 - The canonical token is signed rather than encrypted and must not carry secrets or confidential data; HTTP, routing, authentication, authorization, persistence, key storage, and redirect execution remain Host-owned.
 
-[Unreleased]: https://github.com/Maatify/php-return-target/compare/v1.0.0-rc.1...HEAD
+[Unreleased]: https://github.com/Maatify/php-return-target/compare/v1.0.0-rc.2...HEAD
+[1.0.0-rc.2]: https://github.com/Maatify/php-return-target/releases/tag/v1.0.0-rc.2
 [1.0.0-rc.1]: https://github.com/Maatify/php-return-target/releases/tag/v1.0.0-rc.1

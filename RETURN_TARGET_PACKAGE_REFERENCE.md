@@ -61,9 +61,8 @@ The decoded U+0020 SPACE rule is component-aware:
   (for example `/p?q=two words`) exactly once per acceptance evaluation and can only
   restrict further.
 
-This boundary is recorded by `DEC-004` and is introduced by the `v1.0.0-rc.2`
-preparation work, which is not yet published; the published `v1.0.0-rc.1` rejects
-decoded query SPACE.
+This boundary is recorded by `DEC-004` and is delivered by `v1.0.0-rc.2`; the
+previous release `v1.0.0-rc.1` rejected decoded query SPACE.
 
 The service does not catch unknown external/provider or Host-policy throwables. Current
 package-owned mappings are `InvalidReturnTargetConfigurationException` to the

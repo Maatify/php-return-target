@@ -5,7 +5,7 @@
 ![Maatify.dev](https://www.maatify.dev/assets/img/img/maatify_logo_white.svg)
 
 [![Status](https://img.shields.io/badge/Status-Release%20Candidate-blue)](CHANGELOG.md)
-[![Version](https://img.shields.io/badge/Version-1.0.0--rc.1-blue)](https://packagist.org/packages/maatify/php-return-target)
+[![Version](https://img.shields.io/badge/Version-1.0.0--rc.2-blue)](https://packagist.org/packages/maatify/php-return-target)
 [![PHP](https://img.shields.io/badge/PHP-8.4-8892BF)](composer.json)
 [![License](https://img.shields.io/badge/License-Proprietary-green)](LICENSE)
 [![PHPStan](https://img.shields.io/badge/PHPStan-max-blue)](phpstan.neon)
@@ -14,12 +14,12 @@
 [![Monthly Downloads](https://img.shields.io/packagist/dm/maatify/php-return-target)](https://packagist.org/packages/maatify/php-return-target)
 [![Total Downloads](https://img.shields.io/packagist/dt/maatify/php-return-target)](https://packagist.org/packages/maatify/php-return-target)
 [![Maatify Ecosystem](https://img.shields.io/badge/Maatify-Ecosystem-blueviolet)](https://github.com/Maatify)
-[![Install](https://img.shields.io/badge/Install-1.0.0--rc.1-brightgreen)](https://packagist.org/packages/maatify/php-return-target)
+[![Install](https://img.shields.io/badge/Install-1.0.0--rc.2-brightgreen)](https://packagist.org/packages/maatify/php-return-target)
 
 [![Usage Guide](https://img.shields.io/badge/Usage%20Guide-current-blue)](docs/guides/USAGE_GUIDE.md)
 [![Examples](https://img.shields.io/badge/Examples-maintained-blue)](examples/)
 [![Package Reference](https://img.shields.io/badge/Package%20Reference-canonical-blue)](RETURN_TARGET_PACKAGE_REFERENCE.md)
-[![Changelog](https://img.shields.io/badge/Changelog-Unreleased-lightgrey)](CHANGELOG.md)
+[![Changelog](https://img.shields.io/badge/Changelog-1.0.0--rc.2-blue)](CHANGELOG.md)
 [![Security Policy](https://img.shields.io/badge/Security%20Policy-current-blue)](SECURITY.md)
 [![Contributing Guide](https://img.shields.io/badge/Contributing%20Guide-current-blue)](CONTRIBUTING.md)
 
@@ -31,9 +31,9 @@ Stateless signed internal return-target handling for framework-agnostic PHP appl
 
 ## Status
 
-**Release Candidate — latest published `1.0.0-rc.1`; target `1.0.0-rc.2` (not yet published)**
+**Release Candidate — `1.0.0-rc.2`**
 
-The current development and release target is `v1.0.0-rc.2`. It is in preparation and is **not yet published**. The latest actually published pre-release is `v1.0.0-rc.1`, which is available to consumers through Packagist. No Stable release has been published.
+The published SemVer pre-release `v1.0.0-rc.2` (released 2026-10-02) is available to consumers through Packagist. No Stable release has been published.
 
 ## Key Features
 
@@ -53,10 +53,10 @@ The current development and release target is `v1.0.0-rc.2`. It is in preparatio
 
 ## Installation
 
-The latest published Release Candidate (`1.0.0-rc.1`) is available through Packagist; `1.0.0-rc.2` is not yet published:
+The published Release Candidate is available through Packagist:
 
 ```shell
-composer require maatify/php-return-target:1.0.0-rc.1@RC
+composer require maatify/php-return-target:1.0.0-rc.2@RC
 ```
 
 ## Quick Usage
