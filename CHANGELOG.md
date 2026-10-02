@@ -6,6 +6,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+The Unreleased work targets `v1.0.0-rc.2`. It is in preparation and is not yet published; `v1.0.0-rc.1` remains the latest published pre-release.
+
+### Changed
+
+- Query-space boundary (`DEC-004`, superseding `DEC-003`; tracked in issue #21): a single-decoded U+0020 SPACE that originates from the query component, such as `/p?q=two%20words`, is now accepted. The exact original representation is still preserved by `issue()` and `verify()`, and a restriction policy still receives the single-decoded inspection form exactly once.
+
+### Security
+
+- The security contract is unchanged except for the point above: a raw SPACE anywhere and a decoded SPACE originating from the path (for example `/p%20x?q=1`) are still rejected, as are decoded NUL, CR/LF and other controls, DEL, backslash, `#`, and second-stage percent escapes in the query. A literal `+` is not decoded to SPACE. There is no new public API, configuration, token-format, crypto, or TTL change.
+
 ## [1.0.0-rc.1] - 2026-09-30
 
 ### Added

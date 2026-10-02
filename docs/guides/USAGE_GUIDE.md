@@ -66,6 +66,10 @@ Input → Public Call → Result → Boundary:
 3. **Result:** normal rejection is `false` or `null`; configuration and classified crypto failures remain exceptional.
 4. **Boundary:** the Host must not treat a normal rejection as a fallback target; it chooses its own fallback or response behavior.
 
+## Query Targets Containing Spaces
+
+A target whose query contains a percent-encoded space, such as `/search?q=two%20words`, is accepted by the canonical service. The same encoded space in the path, such as `/p%20x?q=1`, and any raw space anywhere are rejected. A `+` stays a literal `+`. `verify()` returns the exact original representation (`/search?q=two%20words`); it is never rewritten to a decoded or `+` form. A restriction policy sees the single-decoded inspection form (`/search?q=two words`) once per evaluation. This behavior is part of the `v1.0.0-rc.2` preparation work, which is not yet published; the published `v1.0.0-rc.1` rejects such targets.
+
 ## Canonical Contract
 
 The [Package Reference](../../RETURN_TARGET_PACKAGE_REFERENCE.md) is the canonical public/runtime/behavioral contract and complete Public Runtime API inventory. This guide provides consumer integration guidance and does not replace it.

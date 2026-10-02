@@ -146,6 +146,87 @@ final class HmacReturnTargetServiceSystemTest extends TestCase
         self::assertSame([$target], $policy->inspectionTargets);
     }
 
+    #[DataProvider('queryEncodedSpaceTargets')]
+    public function testQueryEncodedSpaceIsAcceptedAndExactOriginalRepresentationIsPreserved(string $target, string $unexpectedRewrite): void
+    {
+        $service = $this->service(new SystemFixedClock(1790000000), null, 60);
+
+        self::assertTrue($service->accepts($target));
+        $token = $service->issue($target);
+        self::assertNotNull($token);
+
+        $verified = $service->verify($token);
+        self::assertInstanceOf(VerifiedReturnTargetDTO::class, $verified);
+        self::assertSame($target, $verified->target);
+        self::assertNotSame($unexpectedRewrite, $verified->target);
+        self::assertNotSame(str_replace('%20', '+', $target), $verified->target);
+        self::assertSame(1790000060, $verified->expiresAt);
+    }
+
+    /**
+     * @return iterable<string, array{target: string, unexpectedRewrite: string}>
+     */
+    public static function queryEncodedSpaceTargets(): iterable
+    {
+        yield 'two words' => ['target' => '/p?q=two%20words', 'unexpectedRewrite' => '/p?q=two words'];
+        yield 'three words' => ['target' => '/p?q=a%20b%20c', 'unexpectedRewrite' => '/p?q=a b c'];
+    }
+
+    public function testHostPolicyReceivesSingleDecodedQuerySpaceExactlyOncePerOperation(): void
+    {
+        $policy = new RecordingSystemPolicy();
+        $service = $this->service(new SystemFixedClock(1790000000), $policy, 60);
+        $target = '/p?q=two%20words';
+
+        self::assertTrue($service->accepts($target));
+        self::assertSame(['/p?q=two words'], $policy->inspectionTargets);
+
+        $policy->reset();
+        $token = $service->issue($target);
+        self::assertNotNull($token);
+        self::assertSame(['/p?q=two words'], $policy->inspectionTargets);
+
+        $policy->reset();
+        $verified = $service->verify($token);
+        self::assertInstanceOf(VerifiedReturnTargetDTO::class, $verified);
+        self::assertSame($target, $verified->target);
+        self::assertSame(['/p?q=two words'], $policy->inspectionTargets);
+    }
+
+    public function testRestrictOnlyPolicyCanStillRejectAcceptedQuerySpaceTarget(): void
+    {
+        $policy = new SystemPolicy(false);
+        $service = $this->service(new SystemFixedClock(1790000000), $policy, 60);
+
+        self::assertFalse($service->accepts('/orders/15?q=two%20words'));
+        self::assertSame(1, $policy->calls);
+    }
+
+    public function testPathEncodedSpaceDoesNotReachHostPolicy(): void
+    {
+        $policy = new RecordingSystemPolicy();
+        $service = $this->service(new SystemFixedClock(1790000000), $policy, 60);
+
+        self::assertFalse($service->accepts('/p%20x?q=1'));
+        self::assertNull($service->issue('/p%20x?q=1'));
+        self::assertSame([], $policy->inspectionTargets);
+    }
+
+    public function testLiteralPlusIsNotDecodedToSpaceAndIsPreservedExactly(): void
+    {
+        $policy = new RecordingSystemPolicy();
+        $service = $this->service(new SystemFixedClock(1790000000), $policy, 60);
+        $target = '/p?q=a+b';
+
+        $token = $service->issue($target);
+        self::assertNotNull($token);
+        self::assertSame([$target], $policy->inspectionTargets);
+
+        $verified = $service->verify($token);
+        self::assertInstanceOf(VerifiedReturnTargetDTO::class, $verified);
+        self::assertSame($target, $verified->target);
+    }
+
     public function testPublicServiceEvaluatesHostPolicyOncePerPublicOperationWithDecodedInspectionValue(): void
     {
         $policy = new RecordingSystemPolicy();
@@ -227,7 +308,16 @@ final class HmacReturnTargetServiceSystemTest extends TestCase
         yield 'control byte' => ['target' => '/orders/%01', 'case' => 'decoded control byte must be rejected'];
         yield 'backslash' => ['target' => '/orders/%5C', 'case' => 'decoded backslash must be rejected'];
         yield 'fragment marker' => ['target' => '/orders/%23fragment', 'case' => 'decoded fragment marker must be rejected'];
-        yield 'whitespace' => ['target' => '/orders/%20item', 'case' => 'decoded whitespace must be rejected'];
+        yield 'path whitespace' => ['target' => '/orders/%20item', 'case' => 'decoded path SPACE must be rejected'];
+        yield 'path whitespace with query' => ['target' => '/p%20x?q=1', 'case' => 'decoded path SPACE must be rejected even with a query'];
+        yield 'query LF' => ['target' => '/p?q=a%0Ab', 'case' => 'decoded query LF must be rejected'];
+        yield 'query CR' => ['target' => '/p?q=a%0Db', 'case' => 'decoded query CR must be rejected'];
+        yield 'query NUL' => ['target' => '/p?q=%00', 'case' => 'decoded query NUL must be rejected'];
+        yield 'query DEL' => ['target' => '/p?q=%7F', 'case' => 'decoded query DEL must be rejected'];
+        yield 'query backslash' => ['target' => '/p?q=a%5Cb', 'case' => 'decoded query backslash must be rejected'];
+        yield 'query fragment marker' => ['target' => '/p?q=a%23b', 'case' => 'decoded query fragment marker must be rejected'];
+        yield 'query second-stage escape' => ['target' => '/p?q=%2520', 'case' => 'second-stage percent escape in the query must be rejected'];
+        yield 'raw query SPACE' => ['target' => '/p?q=two words', 'case' => 'raw SPACE in the query must be rejected'];
     }
 
     #[DataProvider('rejectedPathTargets')]

@@ -76,6 +76,24 @@ if (! $verified instanceof VerifiedReturnTargetDTO) {
 }
 expect($verified->target === $target, 'The exact original target was not preserved.');
 expect($verified->expiresAt === 1790000060, 'Expiry was not derived from the Host clock.');
+
+$spaceTarget = '/orders/15?q=two%20words';
+$spaceToken = $service->issue($spaceTarget);
+if (! is_string($spaceToken) || $spaceToken === '') {
+    throw new RuntimeException('Query-encoded SPACE target did not produce an opaque token.');
+}
+$spaceVerified = $service->verify($spaceToken);
+if (! $spaceVerified instanceof VerifiedReturnTargetDTO) {
+    throw new RuntimeException('Query-encoded SPACE token did not produce the public DTO.');
+}
+expect($spaceVerified->target === $spaceTarget, 'The exact query-encoded SPACE representation was not preserved.');
+expect($spaceVerified->target !== '/orders/15?q=two words', 'The query SPACE was rewritten to a decoded space.');
+expect($spaceVerified->target !== '/orders/15?q=two+words', 'The query SPACE was rewritten to a plus sign.');
+expect($service->accepts('/orders/15?q=a+b'), 'Literal plus in a query was rejected.');
+expect(! $service->accepts('/orders/15%20x?q=1'), 'Path-encoded SPACE was accepted.');
+expect(! $service->accepts('/orders/15?q=a%0Ab'), 'Query-encoded LF was accepted.');
+expect(! $service->accepts('/orders/15?q=%2520'), 'Second-stage query escape was accepted.');
+
 $policy->allowsTarget = false;
 expect($service->verify($token) === null, 'Current policy did not reject a previously issued token.');
 
@@ -83,4 +101,4 @@ $policy->allowsTarget = true;
 $clock->timestamp = 1790000060;
 expect($service->verify($token) === null, 'Expired token was accepted at the expiry boundary.');
 
-echo "Consumer verification passed: public issue/verify, exact target, policy, safety, and expiry.\n";
+echo "Consumer verification passed: public issue/verify, exact target, query-space boundary, policy, safety, and expiry.\n";

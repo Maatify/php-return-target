@@ -32,12 +32,38 @@ additional requirements imposed on every Host implementation.
 The service constructor is `HmacReturnTargetService(ReturnTargetConfig, KeyProviderInterface, ClockInterface, ?ReturnTargetRestrictionPolicyInterface = null)`. `accepts()` validates the original target and invokes the optional policy exactly once with the single-percent-decoded inspection representation. `issue()` returns null for normal rejection, uses `ClockInterface::now()->getTimestamp()`, and signs the exact original representation. `verify()` passes the Clock timestamp to the internal codec, re-applies current validation and policy, rejects when `now >= exp`, and returns the exact recovered original representation.
 
 The validator rejects unsafe RFC 3986 target forms, original targets larger than 2048
-bytes, raw or decoded controls including DEL, whitespace, backslash, `#`, malformed
+bytes, raw or decoded controls including DEL, raw whitespace, backslash, `#`, malformed
 percent escapes, authority-form exposure, and raw or single-decoded path dot segments.
 It performs one percent-decoding inspection pass only, rejects second-stage valid
 percent-escape ambiguity, and never trims, normalizes, recursively decodes, or rewrites.
 The exact original representation is preserved in canonical token payloads and public
 results; the inspection representation is never stored or returned as a replacement.
+
+### Query-space boundary
+
+The decoded U+0020 SPACE rule is component-aware:
+
+- A raw U+0020 SPACE is rejected everywhere, including in the query.
+- A single-decoded U+0020 SPACE that originates from the path is rejected, so
+  `/p%20x?q=1` is rejected.
+- A single-decoded U+0020 SPACE that originates from the query is accepted, so
+  `/p?q=two%20words` and `/p?q=a%20b%20c` are accepted. The component is the one the
+  raw byte or escape was written in, split on the first raw `?`.
+- A literal `+` remains a literal `+`; it is never decoded to SPACE, and `%20` is never
+  rewritten to `+`.
+- Every other decoded unsafe value remains rejected in the query: NUL, CR/LF and other
+  ASCII controls, DEL, backslash, `#`, and a newly formed valid percent escape such as
+  the second stage of `%2520`.
+- The exact original representation is preserved: `issue('/p?q=two%20words')` succeeds
+  and `verify()` returns exactly `/p?q=two%20words`, not `/p?q=two words` or
+  `/p?q=two+words`.
+- An optional restriction policy receives the single-decoded inspection representation
+  (for example `/p?q=two words`) exactly once per acceptance evaluation and can only
+  restrict further.
+
+This boundary is recorded by `DEC-004` and is introduced by the `v1.0.0-rc.2`
+preparation work, which is not yet published; the published `v1.0.0-rc.1` rejects
+decoded query SPACE.
 
 The service does not catch unknown external/provider or Host-policy throwables. Current
 package-owned mappings are `InvalidReturnTargetConfigurationException` to the
@@ -232,7 +258,7 @@ A Host may implement `ReturnTargetServiceInterface` as a complete replacement
 implementation. It is bound only by the Shared Behavioral Floor described in
 this reference. It may differ in token format, cryptography, key management,
 validation internals, TTL policy, and storage or persistence internals, as
-specified by DEC-003 and the Public Contract.
+specified by DEC-004 (which supersedes DEC-003) and the Public Contract.
 
 ### Canonical HMAC Restriction Extension
 

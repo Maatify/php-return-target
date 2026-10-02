@@ -31,9 +31,9 @@ Stateless signed internal return-target handling for framework-agnostic PHP appl
 
 ## Status
 
-**Release Candidate — `1.0.0-rc.1`**
+**Release Candidate — latest published `1.0.0-rc.1`; target `1.0.0-rc.2` (not yet published)**
 
-The published SemVer pre-release `v1.0.0-rc.1` is available to consumers through Packagist. No Stable release has been published.
+The current development and release target is `v1.0.0-rc.2`. It is in preparation and is **not yet published**. The latest actually published pre-release is `v1.0.0-rc.1`, which is available to consumers through Packagist. No Stable release has been published.
 
 ## Key Features
 
@@ -53,7 +53,7 @@ The published SemVer pre-release `v1.0.0-rc.1` is available to consumers through
 
 ## Installation
 
-The published Release Candidate is available through Packagist:
+The latest published Release Candidate (`1.0.0-rc.1`) is available through Packagist; `1.0.0-rc.2` is not yet published:
 
 ```shell
 composer require maatify/php-return-target:1.0.0-rc.1@RC

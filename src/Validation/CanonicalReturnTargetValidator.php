@@ -12,7 +12,9 @@ namespace Maatify\ReturnTarget\Validation;
  * The inspection view is never a replacement representation: callers retain and use
  * the original input for token payloads and public output. This package-internal
  * validator is not a Public API or Host extension point. Decoding is performed exactly
- * once, with plus signs preserved literally, for security inspection only.
+ * once, with plus signs preserved literally, for security inspection only. A decoded
+ * U+0020 SPACE is accepted only when it originates from the query component; raw
+ * whitespace and a decoded SPACE originating from the path are rejected.
  */
 final class CanonicalReturnTargetValidator
 {
@@ -123,7 +125,8 @@ final class CanonicalReturnTargetValidator
 
         for ($i = 0, $length = strlen($target); $i < $length; $i++) {
             $byte = ord($target[$i]);
-            if ($byte < 0x20 || $byte === 0x20 || $byte === 0x7f || $target[$i] === '\\' || $target[$i] === '#' || ($target[$i] === '%' && $i + 2 < $length && $this->isHex($target[$i + 1]) && $this->isHex($target[$i + 2]))) {
+            $isPathSpace = $byte === 0x20 && $i < $decodedPathLength;
+            if ($byte < 0x20 || $isPathSpace || $byte === 0x7f || $target[$i] === '\\' || $target[$i] === '#' || ($target[$i] === '%' && $i + 2 < $length && $this->isHex($target[$i + 1]) && $this->isHex($target[$i + 2]))) {
                 return false;
             }
         }
