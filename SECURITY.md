@@ -5,7 +5,7 @@
 
 ## Current Support State
 
-The `v1.0.0-rc.1` Release Candidate is published as a pre-release through Packagist. No Stable release has been published.
+The `v1.0.0-rc.2` Release Candidate is the current Release Candidate, published as a pre-release through Packagist. No Stable release has been published.
 
 The published RC does not establish a supported Stable release line. This
 policy does not present `1.x` or `1.0` as a supported release line.

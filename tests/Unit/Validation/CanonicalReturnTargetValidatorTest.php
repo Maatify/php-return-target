@@ -42,6 +42,18 @@ final class CanonicalReturnTargetValidatorTest extends TestCase
             '/a%5Cb',
             '/a%23b',
             '/a%20b',
+            '/p%20x?q=1',
+            '/p%3F%20x',
+            '/p?q=a b',
+            '/p?q=a%0Ab',
+            '/p?q=a%0Db',
+            '/p?q=%00',
+            '/p?q=%09',
+            '/p?q=%7F',
+            '/p?q=a%5Cb',
+            '/p?q=a%23b',
+            '/p?q=%2520',
+            '/p?q=%2F%2F%20%252F',
             '/a%0Ab',
             '/a%7Fb',
             '/a%25E0%25A4%25A',
@@ -66,5 +78,25 @@ final class CanonicalReturnTargetValidatorTest extends TestCase
 
         self::assertSame('/orders?next=..', $validator->inspect('/orders?next=..'));
         self::assertSame('/orders?next=..', $validator->inspect('/orders?next=%2E%2E'));
+    }
+
+    public function testDecodedSpaceIsAcceptedOnlyWhenItOriginatesFromTheQuery(): void
+    {
+        $validator = new CanonicalReturnTargetValidator();
+
+        self::assertSame('/p?q=two words', $validator->inspect('/p?q=two%20words'));
+        self::assertSame('/p?q=a b c', $validator->inspect('/p?q=a%20b%20c'));
+        self::assertSame('/p?q= ', $validator->inspect('/p?q=%20'));
+        self::assertSame('/p?a=1&b=x y?z', $validator->inspect('/p?a=1&b=x%20y?z'));
+        self::assertNull($validator->inspect('/p%20x?q=1'));
+        self::assertNull($validator->inspect('/p%20x?q=a%20b'));
+    }
+
+    public function testPlusRemainsLiteralAndIsNotDecodedToSpace(): void
+    {
+        $validator = new CanonicalReturnTargetValidator();
+
+        self::assertSame('/p?q=a+b', $validator->inspect('/p?q=a+b'));
+        self::assertSame('/p?q=a+b', $validator->inspect('/p?q=a%2Bb'));
     }
 }

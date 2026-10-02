@@ -6,7 +6,7 @@ For consumer use, follow the Package Reference for the supported Public Contract
 
 ## Primary consumer documentation
 
-- [README.md](README.md) — package overview, current Release Candidate status, requirements, installation, Quick Usage, and Public Runtime API overview.
+- [README.md](README.md) — package overview, current Release Candidate `v1.0.0-rc.2` status, requirements, installation, Quick Usage, and Public Runtime API overview.
 - [RETURN_TARGET_PACKAGE_REFERENCE.md](RETURN_TARGET_PACKAGE_REFERENCE.md) — canonical public/runtime/behavioral contract and complete Public Runtime API inventory.
 - [docs/guides/USAGE_GUIDE.md](docs/guides/USAGE_GUIDE.md) — consumer integration workflows, boundaries, inputs, outputs, and rejection semantics.
 - [examples/](examples/) — maintained examples using the documented Public API and production autoload.
