@@ -10,7 +10,7 @@
 - **Scope / Concern:** Return-target runtime architecture, Public Contract, security boundary, crypto integration, extensibility boundary, and persistence boundary
 - **Supersedes:** None
 - **Superseded By:** `DEC-004`
-- **Canonical Contract / Current Owner:** [RETURN_TARGET_PACKAGE_REFERENCE.md](../../RETURN_TARGET_PACKAGE_REFERENCE.md) — current implemented public/runtime/behavioral contract; this `ACTIVE` Decision Record remains the durable architecture, security-boundary, and rationale authority
+- **Canonical Contract / Current Owner:** [RETURN_TARGET_PACKAGE_REFERENCE.md](../../RETURN_TARGET_PACKAGE_REFERENCE.md) — current implemented public/runtime/behavioral contract; this `SUPERSEDED` record is historical only, and [DEC-004](DEC-004-QUERY-SPACE-BOUNDARY-SUPERSESSION.md) is the current `ACTIVE` architecture, security-boundary, and rationale authority
 
 > This record was Owner-approved and `ACTIVE` from `2026-09-28` and governed `v1.0.0-rc.1`. It is now `SUPERSEDED` by [DEC-004](DEC-004-QUERY-SPACE-BOUNDARY-SUPERSESSION.md) and is preserved as a historical record only. It is not the current implementation authority; use `DEC-004` and the Package Reference. The text below is unchanged historical wording.
 
